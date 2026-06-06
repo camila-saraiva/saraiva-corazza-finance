@@ -253,7 +253,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 .settings-btn:hover { background: rgba(201,162,39,0.2); border-color: var(--gold); color: var(--gold); }
 /* ---- SETTINGS MODAL ---- */
 #modal-settings {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 8888;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000;
   display: none; align-items: center; justify-content: center; padding: 20px;
 }
 #modal-settings.open { display: flex; }
@@ -1979,11 +1979,11 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 </div>
 
 <!-- MODAL SENHAS -->
-<div class="modal-overlay" id="modal-passwords" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal" style="max-width:380px;">
-    <div class="modal-header">
-      <div class="modal-title">🔑 Alterar senhas</div>
-      <button class="modal-close" onclick="document.getElementById('modal-passwords').classList.remove('open')">×</button>
+<div class="modal-overlay" id="modal-passwords" style="z-index:9001;" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:380px;background:#16213E;color:white;border:1px solid rgba(255,255,255,0.1);">
+    <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div class="modal-title" style="color:#C9A227;">🔑 Alterar senhas</div>
+      <button class="modal-close" style="color:rgba(255,255,255,0.6);" onclick="document.getElementById('modal-passwords').classList.remove('open')">×</button>
     </div>
     <div style="padding:0 0 12px;">
       <div class="settings-section-title" style="padding:8px 0 4px;">Senha — Camila</div>
@@ -2010,7 +2010,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       </div>
     </div>
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="document.getElementById('modal-passwords').classList.remove('open')">Fechar</button>
+      <button class="btn-cancel" style="color:white;border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);" onclick="document.getElementById('modal-passwords').classList.remove('open')">Fechar</button>
     </div>
   </div>
 </div>
@@ -2032,8 +2032,8 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <div class="pill p-brl" id="conta-pill-brl" onclick="document.getElementById('conta-modal-moeda').value='brl';document.getElementById('conta-pill-brl').classList.add('active');document.getElementById('conta-pill-eur').classList.remove('active');">🇧🇷 BRL</div>
       </div>
       <div class="flabel" style="margin-top:12px;">Titular</div>
-      <div class="pill-row">
-        <div class="pill active" id="conta-tit-ambos" onclick="setContaTitular('ambos')">👥 Ambos</div>
+      <div class="pill-row" id="conta-tit-row">
+        <div class="pill p-eur active" id="conta-tit-ambos" onclick="setContaTitular('ambos')">👥 Ambos</div>
         <div class="pill" id="conta-tit-camila" onclick="setContaTitular('camila')">👩‍💼 Camila</div>
         <div class="pill" id="conta-tit-ayrton" onclick="setContaTitular('ayrton')">👨‍💼 Ayrton</div>
       </div>
@@ -2447,6 +2447,8 @@ let charts = {};
 function showTab(tabId, navEl, bnEl) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tabId).classList.add('active');
+  // Resize all charts after tab switch so they render in previously-hidden tabs
+  setTimeout(() => { Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} }); }, 50);
   if (navEl) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     navEl.classList.add('active');
@@ -3038,7 +3040,9 @@ function cfBarLine(id, entradas, saidas, dre, meses, curIdx) {
 
 function catDoughnut(id, labels, values, colors) {
   if (charts[id]) {
+    charts[id].data.labels = labels;
     charts[id].data.datasets[0].data = values;
+    charts[id].data.datasets[0].backgroundColor = colors;
     charts[id].update('none');
     return;
   }
@@ -3513,7 +3517,12 @@ function getContasSaldoCalc(moeda) {
 
 function setContaTitular(t) {
   document.getElementById('conta-modal-titular').value = t;
-  ['ambos','camila','ayrton'].forEach(x => document.getElementById('conta-tit-'+x).classList.toggle('active', x===t));
+  ['ambos','camila','ayrton'].forEach(x => {
+    const el = document.getElementById('conta-tit-'+x);
+    if (!el) return;
+    el.classList.toggle('active', x===t);
+    el.classList.toggle('p-eur', x===t);
+  });
 }
 
 function openContaModal(idx) {
@@ -3596,15 +3605,15 @@ function renderContasSaldos() {
       return ' <span style="font-size:10px;color:'+(diff>=0?'var(--success)':'var(--danger)')+';">'+(diff>=0?'+':'')+sym(c.moeda)+' '+Math.abs(diff).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span>';
     })() : '';
     return `<div class="list-row">
-      <div class="list-dot" style="background:\${c.cor||'#888'};"></div>
+      <div class="list-dot" style="background:${c.cor||'#888'};"></div>
       <div class="list-info">
-        <div class="list-desc">\${c.nome}\${diffStr}</div>
-        <div class="list-sub">\${flag(c.moeda)} \${titLabel(c.titular||'ambos')}\${c.dataRef?' · ref: '+c.dataRef:''}</div>
+        <div class="list-desc">${c.nome}${diffStr}</div>
+        <div class="list-sub">${flag(c.moeda)} ${titLabel(c.titular||'ambos')}${c.dataRef?' · ref: '+c.dataRef:''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <div class="list-val \${c.moeda==='eur'?'text-eur':'text-brl'}">\${fmtV(saldoCalc, c.moeda)}</div>
-        <button onclick="openContaModal(\${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">✏️</button>
-        <button onclick="deleteConta(\${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">🗑</button>
+        <div class="list-val ${c.moeda==='eur'?'text-eur':'text-brl'}">${fmtV(saldoCalc, c.moeda)}</div>
+        <button onclick="openContaModal(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">✏️</button>
+        <button onclick="deleteConta(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -4041,11 +4050,11 @@ function renderInvestimentosValues() {
       })();
       const pct = caixaIT > 0 ? Math.round(sc/caixaIT*100) : 0;
       return `<div class="port-row">
-        <div class="port-dot" style="background:\${c.cor||'#888'};"></div>
-        <div class="port-name">\${c.nome}</div>
-        <div class="port-bar-wrap"><div class="port-bar" style="width:\${pct}%;background:\${c.cor||'#888'};"></div></div>
-        <div class="port-pct">\${pct}%</div>
-        <div class="port-val text-eur">\${fE(sc)}</div>
+        <div class="port-dot" style="background:${c.cor||'#888'};"></div>
+        <div class="port-name">${c.nome}</div>
+        <div class="port-bar-wrap"><div class="port-bar" style="width:${pct}%;background:${c.cor||'#888'};"></div></div>
+        <div class="port-pct">${pct}%</div>
+        <div class="port-val text-eur">${fE(sc)}</div>
         <div class="port-rent" style="color:#aaa;">0,0%</div>
       </div>`;
     }).join('');
@@ -4410,9 +4419,9 @@ function refreshSimuladorOptions() {
     const taxaMensal = taxaAa / 12 / 100;
     const prazo = f.mesesRestantes || f.prazo || 0;
     const sym = f.moeda === 'eur' ? '€' : 'R$';
-    const label = `\${f.nome} (\${taxaAa > 0 ? taxaAa + '% a.a.' : 'sem juros'}) · \${sym} \${parseFloat(f.parcela).toLocaleString('pt-BR')}/mês`;
+    const label = `${f.nome} (${taxaAa > 0 ? taxaAa + '% a.a.' : 'sem juros'}) · ${sym} ${parseFloat(f.parcela).toLocaleString('pt-BR')}/mês`;
     // value format: saldo,taxaMensal,parcela,prazo
-    return `<option value="\${f.saldo},\${taxaMensal},\${f.parcela},\${prazo}">\${label}</option>`;
+    return `<option value="${f.saldo},${taxaMensal},${f.parcela},${prazo}">${label}</option>`;
   }).join('');
   calcAntecipar();
 }
