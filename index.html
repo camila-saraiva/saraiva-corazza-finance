@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="S&C Finance">
+<meta name="theme-color" content="#1A1A2E">
+<link rel="manifest" href="manifest.json">
+<style>
+#login-screen {
+  position: fixed; inset: 0; background: #1A1A2E;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; padding: 32px 24px;
+}
+#login-screen .login-logo {
+  width: 72px; height: 72px; background: #C9A227; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; margin-bottom: 16px;
+}
+#login-screen h1 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #C9A227; font-size: 20px; font-weight: 700; margin-bottom: 4px; text-align: center;
+}
+#login-screen p {
+  color: rgba(255,255,255,0.4); font-size: 13px; margin-bottom: 36px; text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+#login-screen .login-box {
+  background: #16213E; border-radius: 16px; padding: 28px 24px;
+  width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.08);
+}
+#login-screen .user-btns {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+#login-screen .user-btn {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.1);
+  background: transparent; cursor: pointer; font-size: 13px; font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: rgba(255,255,255,0.45); transition: all 0.15s; text-align: center;
+}
+#login-screen .user-btn.active-cam { background: #2D1A5E; color: #C9A0FF; border-color: #C9A0FF; }
+#login-screen .user-btn.active-ayr { background: #1A2E3E; color: #7EC8F0; border-color: #7EC8F0; }
+#login-screen .login-label {
+  font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+#login-screen .login-input {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06);
+  color: white; font-size: 15px; outline: none; margin-bottom: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 2px; box-sizing: border-box;
+}
+#login-screen .login-input:focus { border-color: #C9A227; }
+#login-screen .login-btn {
+  width: 100%; padding: 13px; border-radius: 10px; border: none;
+  background: #C9A227; color: #1A1A2E; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: opacity 0.15s;
+}
+#login-screen .login-btn:hover { opacity: 0.9; }
+#login-screen .login-error {
+  color: #F07E7E; font-size: 12px; text-align: center; margin-top: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 18px;
+}
+#login-screen .login-hint {
+  color: rgba(255,255,255,0.2); font-size: 11px; text-align: center; margin-top: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+</style>
+<script>
+// ============================================================
+// ACESSO — altere as senhas aqui
+// ============================================================
+const USERS = {
+  camila: { senha: 'camila2026', nome: 'Camila', cor: 'active-cam' },
+  ayrton: { senha: 'ayrton2026', nome: 'Ayrton', cor: 'active-ayr' },
+};
+let selectedUser = 'camila';
+
+function selectUser(u) {
+  selectedUser = u;
+  document.querySelectorAll('.user-btn').forEach(b => b.className = 'user-btn');
+  document.getElementById('btn-' + u).className = 'user-btn ' + USERS[u].cor;
+  document.getElementById('login-input').focus();
+  document.getElementById('login-error').textContent = '';
+}
+
+function doLogin() {
+  const input = document.getElementById('login-input').value.trim();
+  const user = USERS[selectedUser];
+  if (input === user.senha) {
+    sessionStorage.setItem('sc_user', selectedUser);
+    sessionStorage.setItem('sc_nome', user.nome);
+    document.getElementById('login-screen').style.display = 'none';
+  } else {
+    document.getElementById('login-error').textContent = 'Senha incorreta. Tente novamente.';
+    document.getElementById('login-input').value = '';
+    document.getElementById('login-input').focus();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem('sc_user')) {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+  document.getElementById('login-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  selectUser('camila');
+});
+</script>
+<title>Saraiva &amp; Corazza — Finanças</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ===================== DESIGN SYSTEM ===================== */
+:root {
+  --navy: #1A1A2E;
+  --navy2: #16213E;
+  --gold: #C9A227;
+  --gold-light: #E8C547;
+  --cream: #F8F6F0;
+  --cream2: #F0EDE5;
+  --dark-red: #8B1A1A;
+  --camila: #C9A0FF;
+  --camila-bg: #2D1A5E;
+  --ayrton: #7EC8F0;
+  --ayrton-bg: #1A2E3E;
+  --eur-c: #5DCAA5;
+  --eur-bg: #085041;
+  --brl-c: #FAC775;
+  --brl-bg: #633806;
+  --danger: #E24B4A;
+  --danger-bg: #FCEBEB;
+  --warn: #EF9F27;
+  --warn-bg: #FAEEDA;
+  --success: #1D9E75;
+  --success-bg: #EAF3DE;
+  --info: #378ADD;
+  --info-bg: #E6F1FB;
+  --border: rgba(0,0,0,0.1);
+  --radius: 10px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--cream); color: var(--navy); }
+body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; min-height: 100vh; }
+
+/* ===================== HEADER ===================== */
+.app-header {
+  background: var(--navy);
+  padding: 10px 16px 0;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-top {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon {
+  width: 28px; height: 28px; background: var(--gold);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--navy); font-weight: 700;
+}
+.logo-text { font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 0.5px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.country-toggle {
+  display: flex; gap: 2px; background: rgba(255,255,255,0.08); border-radius: 20px; padding: 2px;
+}
+.ct-btn {
+  padding: 4px 10px; border-radius: 18px; font-size: 11px; border: none;
+  cursor: pointer; background: transparent; color: rgba(255,255,255,0.5);
+  transition: all 0.15s; font-weight: 500;
+}
+.ct-btn.active { background: var(--gold); color: var(--navy); }
+
+/* TICKER */
+.ticker-bar {
+  display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px;
+  scrollbar-width: none;
+}
+.ticker-bar::-webkit-scrollbar { display: none; }
+.tick { font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; flex-shrink: 0; }
+.tick b { color: rgba(255,255,255,0.85); font-weight: 600; }
+.tick.up b { color: #5DCAA5; }
+.tick.down b { color: #F07E7E; }
+
+/* NAV */
+.nav {
+  background: var(--navy);
+  display: flex;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-item {
+  padding: 9px 12px; font-size: 11px; font-weight: 500;
+  color: rgba(255,255,255,0.4); cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.nav-item.active { color: var(--gold); border-bottom-color: var(--gold); }
+.nav-item:hover:not(.active) { color: rgba(255,255,255,0.7); }
+
+/* ===================== MAIN CONTENT ===================== */
+.main { flex: 1; overflow-y: auto; }
+.tab-content { display: none; padding: 14px 16px 80px; }
+.tab-content.active { display: block; }
+
+/* ===================== COMPONENTS ===================== */
+.section-title {
+  font-size: 13px; font-weight: 600; color: var(--navy);
+  margin-bottom: 10px; margin-top: 16px;
+  border-left: 3px solid var(--gold); padding-left: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.section-title:first-child { margin-top: 0; }
+
+.cards-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.cards-row.two { grid-template-columns: 1fr 1fr; }
+.cards-row.four { grid-template-columns: repeat(2,1fr); }
+
+.card-dark {
+  background: var(--navy); border-radius: var(--radius);
+  padding: 11px 12px;
+}
+.card-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.card-value { font-size: 16px; font-weight: 700; line-height: 1.2; }
+.card-sub { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+.card-delta { font-size: 10px; margin-top: 2px; }
+.card-delta.up { color: var(--eur-c); }
+.card-delta.down { color: #F07E7E; }
+
+.card-white {
+  background: white; border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 11px 12px;
+}
+
+/* PILLS */
+.pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1.5px solid #ddd; color: #888; background: white;
+  transition: all 0.15s;
+}
+.pill.p-eur.active { background: var(--eur-bg); color: var(--eur-c); border-color: var(--eur-c); }
+.pill.p-brl.active { background: var(--brl-bg); color: var(--brl-c); border-color: var(--brl-c); }
+.pill.p-cam.active { background: var(--camila-bg); color: var(--camila); border-color: var(--camila); }
+.pill.p-ayr.active { background: var(--ayrton-bg); color: var(--ayrton); border-color: var(--ayrton); }
+.pill.p-con.active { background: #2E2E2E; color: #aaa; border-color: #888; }
+.pill.p-fix.active { background: var(--ayrton-bg); color: var(--ayrton); border-color: var(--ayrton); }
+.pill.p-var.active { background: #2E1A0E; color: #F0A050; border-color: #F0A050; }
+
+/* FORM */
+.form-card {
+  background: white; border-radius: var(--radius);
+  border: 1.5px dashed var(--gold); padding: 14px; margin-bottom: 12px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg.full { grid-column: 1/-1; }
+.flabel { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+.finput {
+  background: var(--cream); border: 1px solid #ddd; border-radius: 6px;
+  padding: 8px 10px; font-size: 13px; color: var(--navy); outline: none;
+  width: 100%; transition: border-color 0.15s;
+}
+.finput:focus { border-color: var(--gold); }
+.finput-prefix { position: relative; }
+.finput-prefix .prefix { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 600; color: #888; pointer-events: none; }
+.finput-prefix .finput { padding-left: 28px; }
+.btn-primary {
+  width: 100%; padding: 11px; background: var(--gold); color: var(--navy);
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 700;
+  cursor: pointer; margin-top: 10px; transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary {
+  padding: 7px 14px; background: white; color: var(--navy);
+  border: 1px solid #ddd; border-radius: 7px; font-size: 12px;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-secondary:hover { background: var(--cream); }
+
+/* LIST */
+.list-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 12px; }
+.list-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-bottom: 0.5px solid #f0ede6;
+}
+.list-row:last-child { border-bottom: none; }
+.list-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.list-info { flex: 1; min-width: 0; }
+.list-desc { font-size: 12px; font-weight: 500; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-sub { font-size: 10px; color: #aaa; margin-top: 1px; }
+.list-badge { font-size: 10px; padding: 2px 7px; border-radius: 8px; font-weight: 500; white-space: nowrap; }
+.badge-cam { background: var(--camila-bg); color: var(--camila); }
+.badge-ayr { background: var(--ayrton-bg); color: var(--ayrton); }
+.badge-eur { background: var(--eur-bg); color: var(--eur-c); }
+.badge-brl { background: var(--brl-bg); color: var(--brl-c); }
+.badge-fix { background: rgba(26,46,62,0.8); color: var(--ayrton); }
+.badge-var { background: rgba(46,26,14,0.8); color: #F0A050; }
+.list-val { font-size: 13px; font-weight: 700; text-align: right; white-space: nowrap; }
+.list-val.neg { color: var(--danger); }
+.list-val.pos { color: var(--success); }
+
+/* CHART CARD */
+.chart-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; }
+.chart-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ALERT CARDS */
+.alert-card { border-radius: var(--radius); padding: 11px 12px; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start; }
+.alert-card.warn { background: var(--warn-bg); border: 1px solid #FAC775; }
+.alert-card.danger { background: var(--danger-bg); border: 1px solid #F7C1C1; }
+.alert-card.success { background: var(--success-bg); border: 1px solid #97C459; }
+.alert-card.info { background: var(--info-bg); border: 1px solid #85B7EB; }
+.alert-icon { font-size: 15px; flex-shrink: 0; }
+.alert-body {}
+.alert-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.alert-card.warn .alert-title { color: #633806; }
+.alert-card.danger .alert-title { color: #8B1A1A; }
+.alert-card.success .alert-title { color: #27500A; }
+.alert-card.info .alert-title { color: #0C447C; }
+.alert-text { font-size: 11px; line-height: 1.45; }
+.alert-card.warn .alert-text { color: #854F0B; }
+.alert-card.danger .alert-text { color: #A32D2D; }
+.alert-card.success .alert-text { color: #3B6D11; }
+.alert-card.info .alert-text { color: #185FA5; }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 200; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white; border-radius: 14px; padding: 20px;
+  width: 100%; max-width: 360px; max-height: 90vh; overflow-y: auto;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-title { font-size: 14px; font-weight: 700; color: var(--navy); }
+.modal-close { background: none; border: none; font-size: 20px; color: #888; cursor: pointer; padding: 0 4px; }
+.modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+.btn-cancel { flex: 1; padding: 9px; border: 1px solid #ddd; border-radius: 7px; background: white; color: #888; font-size: 12px; cursor: pointer; }
+.btn-save-m { flex: 1; padding: 9px; border: none; border-radius: 7px; background: var(--gold); color: var(--navy); font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* PROGRESS BAR */
+.progress-track { height: 7px; background: #f0ede6; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 7px; border-radius: 4px; transition: width 0.4s; }
+
+/* HEALTH SCORE */
+.health-card {
+  background: var(--navy); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 12px; display: flex; gap: 14px; align-items: flex-start;
+}
+.score-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.score-label-wrap { position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+.score-num { font-size: 22px; font-weight: 700; color: var(--gold); line-height:1; }
+.score-txt { font-size: 9px; color: rgba(255,255,255,0.4); }
+.health-details { flex: 1; }
+.health-title { font-size: 13px; font-weight: 600; color: var(--gold); margin-bottom: 3px; }
+.health-sub { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.4; margin-bottom: 10px; }
+.hbar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.hbar-label { font-size: 10px; color: rgba(255,255,255,0.45); width: 100px; flex-shrink: 0; }
+.hbar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+.hbar-fill { height: 4px; border-radius: 2px; }
+.hbar-val { font-size: 10px; font-weight: 600; width: 30px; text-align: right; }
+
+/* TABS WITHIN PAGE */
+.inner-tabs { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; margin-bottom: 12px; }
+.inner-tab { flex: 1; padding: 8px; text-align: center; font-size: 11px; font-weight: 500; cursor: pointer; background: white; color: #888; border: none; transition: all 0.15s; }
+.inner-tab.active { background: var(--navy); color: var(--gold); }
+.inner-section { display: none; }
+.inner-section.active { display: block; }
+
+/* DRE TABLE */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 12px; }
+.dre-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 700px; }
+.dre-table th {
+  background: var(--navy); color: rgba(255,255,255,0.6);
+  padding: 7px 8px; text-align: right; font-weight: 500;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.dre-table th:first-child { text-align: left; min-width: 150px; position: sticky; left: 0; background: var(--navy); }
+.dre-table th.cur { color: var(--gold); }
+.dre-table td { padding: 6px 8px; text-align: right; white-space: nowrap; border-bottom: 0.5px solid #f0ede6; }
+.dre-table td:first-child { text-align: left; position: sticky; left: 0; font-weight: 500; background: white; z-index:1; }
+.dre-table td.tot { font-weight: 700; border-left: 1px solid #e0ddd6; }
+.dre-table tr:last-child td { border-bottom: none; }
+.tr-saldo td { background: rgba(26,26,46,0.05) !important; font-weight: 700; }
+.tr-saldo td:first-child { color: var(--navy); background: rgba(26,26,46,0.05) !important; }
+.tr-in-total td { background: rgba(29,158,117,0.08) !important; font-weight: 700; }
+.tr-in-total td:first-child { color: var(--eur-bg); background: rgba(29,158,117,0.08) !important; }
+.tr-in td:first-child { color: #555; background: white; padding-left: 18px; }
+.tr-out-total td { background: rgba(226,75,74,0.08) !important; font-weight: 700; }
+.tr-out-total td:first-child { color: var(--dark-red); background: rgba(226,75,74,0.08) !important; }
+.tr-out td:first-child { color: #666; background: white; padding-left: 18px; }
+.tr-dre td { background: var(--navy) !important; color: white; font-weight: 700; }
+.tr-dre td:first-child { color: var(--gold); background: var(--navy) !important; }
+.tr-caixa td { background: rgba(201,162,39,0.1) !important; font-weight: 700; }
+.tr-caixa td:first-child { color: #7a5f00; background: rgba(201,162,39,0.1) !important; }
+.tr-cripto td:first-child { color: #6B3FA0; background: rgba(201,160,255,0.06) !important; padding-left: 18px; }
+.tr-cripto td { background: rgba(201,160,255,0.06) !important; }
+.cell-cur { border-left: 2px solid var(--gold) !important; border-right: 2px solid var(--gold) !important; }
+.dre-pos { color: var(--success) !important; font-weight: 700; }
+.dre-neg { color: var(--danger) !important; font-weight: 700; }
+.future-cell { opacity: 0.5; font-style: italic; }
+.tipo-b { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-right: 4px; opacity: 0.65; background: rgba(255,255,255,0.15); color: white; }
+.tr-in .tipo-b, .tr-in-total .tipo-b { background: rgba(29,158,117,0.3); color: #085041; }
+.tr-out .tipo-b, .tr-out-total .tipo-b { background: rgba(226,75,74,0.3); color: #8B1A1A; }
+.tr-saldo .tipo-b { background: rgba(26,26,46,0.2); color: var(--navy); }
+.tr-dre .tipo-b { background: rgba(201,162,39,0.3); color: var(--gold); }
+.tr-caixa .tipo-b { background: rgba(201,162,39,0.3); color: #7a5f00; }
+
+/* FIXAS TABLE */
+.fixas-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; }
+.fixas-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid #f0ede6; }
+.fixas-row:last-child { border-bottom: none; }
+.fixas-info { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #333; }
+.fixas-day { font-size: 10px; color: #aaa; }
+.fixas-val { font-size: 12px; font-weight: 700; color: var(--danger); }
+.fixas-total-row { margin-top: 8px; padding-top: 8px; border-top: 1.5px solid #e0ddd6; display: flex; justify-content: space-between; align-items: center; }
+
+/* OPERACAO PLACEHOLDER */
+.placeholder-card {
+  background: var(--navy); border-radius: 14px; padding: 40px 20px;
+  text-align: center; margin: 40px 0;
+}
+.placeholder-icon { font-size: 48px; margin-bottom: 16px; }
+.placeholder-title { font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
+.placeholder-text { font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.6; max-width: 260px; margin: 0 auto; }
+
+/* INVESTIMENTOS */
+.port-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; }
+.port-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 0.5px solid #f0ede6; }
+.port-total { margin-left: auto; font-size: 15px; font-weight: 700; }
+.port-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 0.5px solid #f0ede6; }
+.port-row:last-child { border-bottom: none; }
+.port-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.port-name { flex: 1; font-size: 12px; color: #333; }
+.port-sub { font-size: 10px; color: #aaa; }
+.port-bar-wrap { width: 60px; height: 5px; background: #f0ede6; border-radius: 3px; flex-shrink: 0; }
+.port-bar { height: 5px; border-radius: 3px; }
+.port-pct { font-size: 11px; color: #888; width: 28px; text-align: right; flex-shrink: 0; }
+.port-val { font-size: 12px; font-weight: 600; min-width: 80px; text-align: right; }
+.port-rent { font-size: 10px; width: 38px; text-align: right; flex-shrink: 0; }
+
+/* INDICADORES */
+.ind-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+.ind-card { background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+.ind-name { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.ind-val { font-size: 14px; font-weight: 700; color: var(--navy); }
+.ind-delta { font-size: 10px; margin-top: 2px; }
+
+/* IMÓVEIS */
+.imovel-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 0.5px solid #f0ede6; }
+.imovel-row:last-child { border-bottom: none; }
+.imovel-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+.imovel-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
+.imovel-val { font-size: 14px; font-weight: 700; text-align: right; }
+.imovel-renda { font-size: 10px; text-align: right; margin-top: 2px; }
+
+/* ESTRATEGIA */
+.meta-item { margin-bottom: 14px; }
+.meta-item:last-child { margin-bottom: 0; }
+.meta-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.meta-name { font-size: 12px; font-weight: 600; color: var(--navy); }
+.meta-vals { font-size: 11px; color: #888; margin-bottom: 5px; }
+.meta-foot { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: #aaa; }
+
+.daily-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 7px; font-size: 11px; margin-bottom: 6px; }
+.daily-row.ok { background: var(--success-bg); }
+.daily-row.warn { background: var(--warn-bg); }
+.daily-row.crit { background: var(--danger-bg); }
+.daily-date { font-weight: 700; min-width: 38px; flex-shrink: 0; }
+.daily-row.ok .daily-date { color: #27500A; }
+.daily-row.warn .daily-date { color: #854F0B; }
+.daily-row.crit .daily-date { color: #8B1A1A; }
+.daily-desc { flex: 1; line-height: 1.4; }
+.daily-row.ok .daily-desc { color: #3B6D11; }
+.daily-row.warn .daily-desc { color: #854F0B; }
+.daily-row.crit .daily-desc { color: #A32D2D; }
+.daily-amt { font-weight: 700; min-width: 60px; text-align: right; flex-shrink: 0; }
+.daily-row.ok .daily-amt { color: var(--success); }
+.daily-row.warn .daily-amt { color: var(--warn); }
+.daily-row.crit .daily-amt { color: var(--danger); }
+
+.sim-result { background: var(--navy); border-radius: 8px; padding: 10px 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+.sr-item { text-align: center; }
+.sr-label { font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 2px; }
+.sr-val { font-size: 13px; font-weight: 700; }
+
+/* SUMMARY CARDS (PATRIMÔNIO) */
+.patrim-card {
+  background: var(--navy); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 12px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.patrim-item { display: flex; flex-direction: column; gap: 2px; }
+.patrim-lbl { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.4px; }
+.patrim-val { font-size: 15px; font-weight: 700; }
+.patrim-note { font-size: 10px; color: rgba(255,255,255,0.3); }
+
+/* DEBT TABLE */
+.debt-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 12px; }
+.debt-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 380px; }
+.debt-table th { background: var(--navy); color: rgba(255,255,255,0.6); padding: 7px 10px; text-align: right; font-size: 10px; text-transform: uppercase; }
+.debt-table th:first-child { text-align: left; }
+.debt-table td { padding: 8px 10px; text-align: right; border-bottom: 0.5px solid #f0ede6; font-size: 12px; }
+.debt-table td:first-child { text-align: left; font-weight: 500; color: var(--navy); }
+.debt-table tr:last-child td { border-bottom: none; }
+.rate-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.rate-high { background: var(--danger-bg); color: #A32D2D; }
+.rate-mid { background: var(--warn-bg); color: #854F0B; }
+.rate-low { background: var(--success-bg); color: #27500A; }
+.debt-footer { background: #f8f6f0; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+
+/* BOTTOM NAV (mobile) */
+.bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 680px;
+  background: var(--navy); border-top: 1px solid rgba(255,255,255,0.1);
+  z-index: 100;
+}
+@media (max-width: 480px) {
+  .bottom-nav { display: flex; }
+  .tab-content { padding-bottom: 70px; }
+  .nav { display: none; }
+}
+.bn-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px 10px; cursor: pointer; gap: 3px;
+}
+.bn-icon { font-size: 18px; }
+.bn-label { font-size: 9px; color: rgba(255,255,255,0.4); font-weight: 500; }
+.bn-item.active .bn-label { color: var(--gold); }
+.bn-item.active .bn-icon { filter: sepia(1) saturate(5) hue-rotate(5deg); }
+
+/* UTILITIES */
+.text-eur { color: var(--eur-c); }
+.text-brl { color: var(--brl-c); }
+.text-gold { color: var(--gold); }
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+.text-warn { color: var(--warn); }
+.text-cam { color: var(--camila); }
+.text-ayr { color: var(--ayrton); }
+.fw7 { font-weight: 700; }
+.fw5 { font-weight: 500; }
+.fs10 { font-size: 10px; }
+.fs11 { font-size: 11px; }
+.fs12 { font-size: 12px; }
+.fs13 { font-size: 13px; }
+.fs14 { font-size: 14px; }
+.mb8 { margin-bottom: 8px; }
+.mb12 { margin-bottom: 12px; }
+.mb16 { margin-bottom: 16px; }
+.mt8 { margin-top: 8px; }
+.gap8 { gap: 8px; }
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.currency-banner { border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 600; margin-bottom: 10px; text-align: center; }
+.currency-banner.eur { background: var(--eur-bg); color: var(--eur-c); }
+.currency-banner.brl { background: var(--brl-bg); color: var(--brl-c); }
+.tipo-hint { font-size: 11px; padding: 6px 10px; background: var(--cream); border-radius: 6px; border-left: 3px solid #ddd; color: #888; margin-top: 4px; }
+.tipo-hint.fixa { border-color: var(--ayrton); color: var(--ayrton); background: rgba(26,46,62,0.08); }
+.tipo-hint.variavel { border-color: #F0A050; color: #F0A050; background: rgba(46,26,14,0.08); }
+.empty-state { text-align: center; padding: 30px 20px; color: #aaa; font-size: 13px; }
+.empty-state .empty-icon { font-size: 32px; margin-bottom: 8px; }
+.conta-select-wrap { background: var(--cream); border: 1px solid #ddd; border-radius: 8px; padding: 8px 10px; }
+.conta-opts { display: flex; gap: 6px; flex-wrap: wrap; }
+.conta-pill { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; cursor: pointer; background: white; color: #666; border: 1.5px solid #ddd; transition: all 0.15s; }
+.conta-pill.a-eur { background: var(--eur-bg); color: var(--eur-c); border-color: var(--eur-c); }
+.conta-pill.a-brl { background: var(--brl-bg); color: var(--brl-c); border-color: var(--brl-c); }
+
+/* PESSOA CARDS */
+.pessoa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.pessoa-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); padding: 12px; }
+.pessoa-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pessoa-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.pessoa-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+.pessoa-entry { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 0.5px solid #f0ede6; }
+.pessoa-entry:last-child { border-bottom: none; }
+.pessoa-entry-name { font-size: 11px; color: #555; }
+.pessoa-entry-val { font-size: 12px; font-weight: 600; }
+.pessoa-total { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1.5px solid #e0ddd6; }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="login-screen">
+  <div class="login-logo">🦁</div>
+  <h1>Saraiva &amp; Corazza</h1>
+  <p>Controle financeiro familiar</p>
+  <div class="login-box">
+    <div class="login-label">Quem é você?</div>
+    <div class="user-btns">
+      <button class="user-btn active-cam" id="btn-camila" onclick="selectUser('camila')">Camila</button>
+      <button class="user-btn" id="btn-ayrton" onclick="selectUser('ayrton')">Ayrton</button>
+    </div>
+    <div class="login-label">Senha</div>
+    <input class="login-input" id="login-input" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+  <div class="login-hint">Acesso privado — Família Saraiva &amp; Corazza</div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div class="app-header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon">🦁</div>
+      <div class="logo-text">Saraiva &amp; Corazza</div>
+    </div>
+    <div class="header-right">
+      <div class="country-toggle">
+        <button class="ct-btn active" onclick="setCountry('it',this)">🇮🇹</button>
+        <button class="ct-btn" onclick="setCountry('br',this)">🇧🇷</button>
+        <button class="ct-btn" onclick="setCountry('gl',this)">🌍</button>
+      </div>
+    </div>
+  </div>
+  <div class="ticker-bar" id="ticker-bar">
+    <div class="tick">EUR/BRL <b id="t-eurbrl">—</b></div>
+    <div class="tick">USD/BRL <b id="t-usdbrl">—</b></div>
+    <div class="tick">EUR/USD <b id="t-eurusd">—</b></div>
+    <div class="tick">SELIC <b>13,25%</b></div>
+    <div class="tick">EURIBOR <b>2,40%</b></div>
+    <div class="tick" id="t-time"></div>
+  </div>
+  <nav class="nav" id="main-nav">
+    <div class="nav-item active" onclick="showTab('dashboard',this)">Dashboard</div>
+    <div class="nav-item" onclick="showTab('resumo',this)">Resumo</div>
+    <div class="nav-item" onclick="showTab('despesas',this)">Despesas</div>
+    <div class="nav-item" onclick="showTab('entradas',this)">Entradas</div>
+    <div class="nav-item" onclick="showTab('cashflow',this)">Cashflow</div>
+    <div class="nav-item" onclick="showTab('investimentos',this)">Investimentos</div>
+    <div class="nav-item" onclick="showTab('operacao',this)">Operação</div>
+    <div class="nav-item" onclick="showTab('estrategia',this)">Estratégia</div>
+  </nav>
+</div>
+
+<main class="main">
+
+<!-- ==================== DASHBOARD ==================== -->
+<div class="tab-content active" id="tab-dashboard">
+  <div class="cards-row">
+    <div class="card-dark">
+      <div class="card-label">Caixa total</div>
+      <div class="card-value text-eur" id="d-caixa-eur">€ 3.863</div>
+      <div class="card-sub text-brl" id="d-caixa-brl">R$ 7.058</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Entradas mês</div>
+      <div class="card-value text-gold" id="d-entradas">€ 4.324</div>
+      <div class="card-sub">Jun/2026</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Despesas mês</div>
+      <div class="card-value text-danger" id="d-despesas">€ 3.905</div>
+      <div class="card-sub">Jun/2026</div>
+    </div>
+  </div>
+  <div class="cards-row">
+    <div class="card-dark">
+      <div class="card-label">Patrimônio</div>
+      <div class="card-value text-gold">R$ 748k</div>
+      <div class="card-sub">≈ € 121k</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Sobra mês</div>
+      <div class="card-value text-eur" id="d-sobra">+ € 419</div>
+      <div class="card-sub">DRE Jun/2026</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Acumulado 2026</div>
+      <div class="card-value text-gold">+ R$ 94k</div>
+      <div class="card-sub">Histórico 2024</div>
+    </div>
+  </div>
+
+  <div class="section-title">Saúde financeira</div>
+  <div class="health-card">
+    <div class="score-wrap">
+      <canvas id="scoreChart" width="80" height="80"></canvas>
+      <div class="score-label-wrap">
+        <div class="score-num">72</div>
+        <div class="score-txt">/ 100</div>
+      </div>
+    </div>
+    <div class="health-details">
+      <div class="health-title">Boa — com atenção</div>
+      <div class="health-sub">Patrimônio crescente. Atenção ao comprometimento com dívidas fixas.</div>
+      <div class="hbar-row">
+        <div class="hbar-label">Reserva emergência</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:21%;background:var(--warn);"></div></div>
+        <div class="hbar-val text-warn">21%</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">Comprom. renda</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:68%;background:var(--danger);"></div></div>
+        <div class="hbar-val text-danger">68%</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">Taxa poupança</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:32%;background:var(--eur-c);"></div></div>
+        <div class="hbar-val text-eur">32%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Alertas</div>
+  <div class="alert-card warn">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-body">
+      <div class="alert-title">Mútuo vence em 3 dias</div>
+      <div class="alert-text">Mútuo MPS — € 713 — vence 01/Jul. Saldo atual suficiente.</div>
+    </div>
+  </div>
+  <div class="alert-card danger">
+    <div class="alert-icon">🔴</div>
+    <div class="alert-body">
+      <div class="alert-title">Reserva de emergência baixa</div>
+      <div class="alert-text">Cobertura atual: 1,3 meses. Meta: 6 meses (€ 18.000).</div>
+    </div>
+  </div>
+  <div class="alert-card success">
+    <div class="alert-icon">✅</div>
+    <div class="alert-body">
+      <div class="alert-title">Meta XP no prazo</div>
+      <div class="alert-text">Aporte anual XP 50% atingido — R$ 9.000 de R$ 18.000.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Gastos por categoria — Jun</div>
+  <div class="chart-card">
+    <canvas id="dashCatChart" height="160"></canvas>
+  </div>
+
+  <div class="section-title">Mini cashflow — 6 meses</div>
+  <div class="chart-card">
+    <div class="chart-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--eur-c);"></div>Entradas</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--danger);"></div>Saídas</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold);border-radius:50%;"></div>Saldo</div>
+    </div>
+    <canvas id="miniCfChart" height="130"></canvas>
+  </div>
+
+  <div class="section-title">Contas &amp; saldos</div>
+  <div class="card-white mb12">
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--eur-c);"></div>
+      <div class="list-info"><div class="list-desc">Unicredit (Buddy)</div><div class="list-sub">🇮🇹 Conta corrente</div></div>
+      <div class="list-val text-eur">€ 2.238</div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:#378ADD;"></div>
+      <div class="list-info"><div class="list-desc">MPS (Banca Monte dei Paschi)</div><div class="list-sub">🇮🇹 Conta corrente</div></div>
+      <div class="list-val text-eur">€ 1.625</div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--brl-c);"></div>
+      <div class="list-info"><div class="list-desc">Itaú Personnalité</div><div class="list-sub">🇧🇷 CC 07900-0 · AG 3750</div></div>
+      <div class="list-val text-brl">R$ 4.230</div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:#C9A0FF;"></div>
+      <div class="list-info"><div class="list-desc">XP Investimentos</div><div class="list-sub">🇧🇷 CC 8019065</div></div>
+      <div class="list-val text-brl">R$ 2.828</div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:#F07E7E;"></div>
+      <div class="list-info"><div class="list-desc">Nubank</div><div class="list-sub">🇧🇷 CC 76127266-6</div></div>
+      <div class="list-val text-brl">R$ 0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== RESUMO ==================== -->
+<div class="tab-content" id="tab-resumo">
+  <div class="cards-row">
+    <div class="card-dark">
+      <div class="card-label">Saldo Jun/26</div>
+      <div class="card-value text-eur">€ 3.863</div>
+      <div class="card-sub">Fechamento mês</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">DRE mês</div>
+      <div class="card-value text-eur">+ € 419</div>
+      <div class="card-sub">Resultado líquido</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Projeção Dez</div>
+      <div class="card-value text-gold">€ 7.230</div>
+      <div class="card-sub">Se manter tendência</div>
+    </div>
+  </div>
+  <div class="cards-row">
+    <div class="card-dark">
+      <div class="card-label">Total entradas</div>
+      <div class="card-value text-eur">€ 72.013</div>
+      <div class="card-sub">Acum. 2026</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Total saídas</div>
+      <div class="card-value text-danger">€ 67.496</div>
+      <div class="card-sub">Acum. 2026</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Acumulado</div>
+      <div class="card-value text-gold">+ € 4.517</div>
+      <div class="card-sub">Saldo líquido 2026</div>
+    </div>
+  </div>
+
+  <div class="section-title">Cashflow mensal — 2026</div>
+  <div class="chart-card">
+    <div class="chart-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--eur-c);"></div>Entradas</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--danger);"></div>Saídas</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold);border-radius:50%;"></div>Saldo</div>
+    </div>
+    <canvas id="resumoCfChart" height="150"></canvas>
+  </div>
+
+  <div class="section-title">Gastos por categoria — acumulado 2026</div>
+  <div class="chart-card">
+    <canvas id="resumoCatChart" height="180"></canvas>
+  </div>
+
+  <div class="section-title">Evolução patrimonial</div>
+  <div class="chart-card">
+    <canvas id="resumoEvolChart" height="130"></canvas>
+  </div>
+
+  <div class="section-title">Importar extrato</div>
+  <div class="card-white mb12" style="padding:14px;">
+    <div style="font-size:12px;color:#555;margin-bottom:10px;">Importe extratos bancários para alimentar automaticamente as despesas e entradas.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <label style="flex:1;min-width:120px;">
+        <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="handleImport(this,'pdf')">
+        <div style="text-align:center;padding:12px;border:1.5px dashed var(--gold);border-radius:8px;cursor:pointer;font-size:12px;color:var(--gold);font-weight:600;">
+          📄 PDF extrato
+        </div>
+      </label>
+      <label style="flex:1;min-width:120px;">
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleImport(this,'xlsx')">
+        <div style="text-align:center;padding:12px;border:1.5px dashed var(--brl-c);border-radius:8px;cursor:pointer;font-size:12px;color:var(--brl-c);font-weight:600;">
+          📊 Excel / CSV
+        </div>
+      </label>
+    </div>
+    <div id="import-status" style="margin-top:8px;font-size:11px;color:#888;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- ==================== DESPESAS ==================== -->
+<div class="tab-content" id="tab-despesas">
+  <div class="section-title">Nova despesa
+    <button class="btn-secondary" onclick="toggleForm('desp-form')">+ Adicionar</button>
+  </div>
+  <div class="form-card" id="desp-form" style="display:none;">
+    <div style="margin-bottom:10px;">
+      <div class="flabel mb8">Moeda</div>
+      <div class="pill-row">
+        <div class="pill p-eur active" id="desp-pill-eur" onclick="setDespCurrency('eur')">🇮🇹 EUR</div>
+        <div class="pill p-brl" id="desp-pill-brl" onclick="setDespCurrency('brl')">🇧🇷 BRL</div>
+      </div>
+    </div>
+    <div class="currency-banner eur" id="desp-banner">Despesa em Euro — contas italianas</div>
+    <div class="form-grid">
+      <div class="fg">
+        <div class="flabel">Data</div>
+        <input class="finput" type="date" id="desp-data" />
+      </div>
+      <div class="fg">
+        <div class="flabel">Valor</div>
+        <div class="finput-prefix">
+          <span class="prefix" id="desp-symbol">€</span>
+          <input class="finput" type="number" id="desp-valor" placeholder="0,00" step="0.01" min="0" />
+        </div>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Conta / Cartão</div>
+        <div class="conta-select-wrap">
+          <div class="conta-opts" id="desp-contas-eur">
+            <div class="conta-pill a-eur" onclick="selectConta(this,'eur')">Unicredit (Buddy)</div>
+            <div class="conta-pill" onclick="selectConta(this,'eur')">MPS (débito)</div>
+            <div class="conta-pill" onclick="selectConta(this,'eur')">Dinheiro</div>
+          </div>
+          <div class="conta-opts" id="desp-contas-brl" style="display:none;">
+            <div class="conta-pill a-brl" onclick="selectConta(this,'brl')">Itaú Personnalité</div>
+            <div class="conta-pill" onclick="selectConta(this,'brl')">Nubank</div>
+            <div class="conta-pill" onclick="selectConta(this,'brl')">Bradesco</div>
+            <div class="conta-pill" onclick="selectConta(this,'brl')">XP</div>
+            <div class="conta-pill" onclick="selectConta(this,'brl')">Dinheiro</div>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="flabel">Categoria</div>
+        <select class="finput" id="desp-categoria">
+          <option value="alimentacao">Alimentação (Food)</option>
+          <option value="mercado">Mercado</option>
+          <option value="roupas">Roupas / Compras</option>
+          <option value="saude">Saúde</option>
+          <option value="transporte">Transporte / Auto</option>
+          <option value="viagem">Viagem</option>
+          <option value="assinaturas">Assinaturas</option>
+          <option value="casa">Casa / Moradia</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="flabel">Local</div>
+        <input class="finput" type="text" id="desp-local" placeholder="Ex: Esselunga, Milano" />
+      </div>
+      <div class="fg full">
+        <div class="flabel">Titular</div>
+        <div class="pill-row">
+          <div class="pill p-cam active" id="dp-cam" onclick="setTitular('cam')">Camila</div>
+          <div class="pill p-ayr" id="dp-ayr" onclick="setTitular('ayr')">Ayrton</div>
+          <div class="pill p-con" id="dp-con" onclick="setTitular('con')">Conjunto</div>
+        </div>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Tipo de despesa</div>
+        <div class="pill-row mb8">
+          <div class="pill p-fix active" id="dp-fix" onclick="setTipo('fix')">🔁 Fixa (periódica)</div>
+          <div class="pill p-var" id="dp-var" onclick="setTipo('var')">⚡ Variável (esporádica)</div>
+        </div>
+        <div class="tipo-hint fixa" id="desp-tipo-hint">Despesa que se repete todo mês — ex: mútuo, condomínio, assinatura</div>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Descrição / motivação</div>
+        <input class="finput" type="text" id="desp-desc" placeholder="Ex: compras da semana, jantar aniversário..." />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveDespesa()">Salvar despesa</button>
+  </div>
+
+  <div class="section-title">Histórico — <span id="desp-month-label">Jun/2026</span>
+    <select class="finput" style="width:auto;font-size:11px;padding:4px 8px;" onchange="filterDespMonth(this.value)" id="desp-month-sel">
+      <option value="2026-06">Jun/2026</option>
+      <option value="2026-05">Mai/2026</option>
+      <option value="2026-04">Abr/2026</option>
+      <option value="2026-03">Mar/2026</option>
+      <option value="2026-02">Fev/2026</option>
+      <option value="2026-01">Jan/2026</option>
+    </select>
+  </div>
+  <div class="list-card" id="desp-list">
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--eur-c);"></div>
+      <div class="list-info">
+        <div class="list-desc">Esselunga — Mercado</div>
+        <div class="list-sub">05/06 · Unicredit · <span style="color:var(--camila);">Camila</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-var">⚡ Variável</div>
+        <div class="list-val neg">- € 87,50</div>
+      </div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:#F0A050;"></div>
+      <div class="list-info">
+        <div class="list-desc">Mútuo MPS</div>
+        <div class="list-sub">01/06 · MPS · <span style="color:var(--ayrton);">Ayrton</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-fix">🔁 Fixa</div>
+        <div class="list-val neg">- € 713,00</div>
+      </div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--eur-c);"></div>
+      <div class="list-info">
+        <div class="list-desc">Planet Pizza — Alimentação</div>
+        <div class="list-sub">03/06 · Buddy · <span style="color:var(--camila);">Camila</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-var">⚡ Variável</div>
+        <div class="list-val neg">- € 26,00</div>
+      </div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--brl-c);"></div>
+      <div class="list-info">
+        <div class="list-desc">Aporte XP</div>
+        <div class="list-sub">02/06 · Itaú Personnalité · <span style="color:var(--ayrton);">Ayrton</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-fix">🔁 Fixa</div>
+        <div class="list-val neg text-brl">- R$ 1.500</div>
+      </div>
+    </div>
+    <div class="empty-state" id="desp-empty" style="display:none;">
+      <div class="empty-icon">📭</div>
+      <div>Nenhuma despesa neste mês</div>
+    </div>
+  </div>
+
+  <div class="section-title">Por categoria — Jun/2026</div>
+  <div class="chart-card">
+    <canvas id="despCatChart" height="180"></canvas>
+  </div>
+</div>
+
+<!-- ==================== ENTRADAS ==================== -->
+<div class="tab-content" id="tab-entradas">
+  <div class="cards-row">
+    <div class="card-dark">
+      <div class="card-label">Entradas mês</div>
+      <div class="card-value text-eur">€ 4.324</div>
+      <div class="card-sub">Jun/2026</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Salários</div>
+      <div class="card-value text-gold">€ 3.550</div>
+      <div class="card-sub">Camila + Ayrton</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Extras / Renda Var.</div>
+      <div class="card-value text-cam">€ 774</div>
+      <div class="card-sub">Este mês</div>
+    </div>
+  </div>
+
+  <div class="section-title">Por pessoa — Jun/2026</div>
+  <div class="pessoa-grid">
+    <div class="pessoa-card">
+      <div class="pessoa-hdr">
+        <div class="pessoa-avatar" style="background:var(--camila-bg);color:var(--camila);">CA</div>
+        <div class="pessoa-name">Camila</div>
+      </div>
+      <div class="pessoa-entry">
+        <div>
+          <div class="pessoa-entry-name">Salário</div>
+          <div class="list-badge badge-fix" style="margin-top:2px;">🔁 Fixo</div>
+        </div>
+        <div class="pessoa-entry-val text-eur">€ 1.500</div>
+      </div>
+      <div class="pessoa-entry">
+        <div>
+          <div class="pessoa-entry-name">Bônus DL</div>
+          <div class="list-badge badge-var" style="margin-top:2px;">⚡ Variável</div>
+        </div>
+        <div class="pessoa-entry-val text-eur">€ 324</div>
+      </div>
+      <div class="pessoa-entry">
+        <div>
+          <div class="pessoa-entry-name">Rendimento XP</div>
+          <div class="list-badge" style="background:var(--camila-bg);color:var(--camila);margin-top:2px;">Invest.</div>
+        </div>
+        <div class="pessoa-entry-val text-brl">R$ 450</div>
+      </div>
+      <div class="pessoa-total">
+        <span class="fs11 text-muted">Total Camila</span>
+        <span class="fw7 text-cam" style="font-size:14px;">€ 1.824</span>
+      </div>
+    </div>
+    <div class="pessoa-card">
+      <div class="pessoa-hdr">
+        <div class="pessoa-avatar" style="background:var(--ayrton-bg);color:var(--ayrton);">AY</div>
+        <div class="pessoa-name">Ayrton</div>
+      </div>
+      <div class="pessoa-entry">
+        <div>
+          <div class="pessoa-entry-name">Salário</div>
+          <div class="list-badge badge-fix" style="margin-top:2px;">🔁 Fixo</div>
+        </div>
+        <div class="pessoa-entry-val text-eur">€ 2.050</div>
+      </div>
+      <div class="pessoa-entry">
+        <div>
+          <div class="pessoa-entry-name">Bônus</div>
+          <div class="list-badge badge-var" style="margin-top:2px;">⚡ Variável</div>
+        </div>
+        <div class="pessoa-entry-val text-eur">€ 450</div>
+      </div>
+      <div class="pessoa-entry">
+        <div>
+          <div class="pessoa-entry-name">Renda Variável</div>
+          <div class="list-badge" style="background:var(--camila-bg);color:var(--camila);margin-top:2px;">Invest.</div>
+        </div>
+        <div class="pessoa-entry-val text-brl">R$ 2.800</div>
+      </div>
+      <div class="pessoa-total">
+        <span class="fs11">Total Ayrton</span>
+        <span class="fw7 text-ayr" style="font-size:14px;">€ 2.500</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Histórico — Jun/2026
+    <button class="btn-secondary" onclick="toggleForm('entr-form')">+ Adicionar</button>
+  </div>
+  <div class="form-card" id="entr-form" style="display:none;">
+    <div class="form-grid">
+      <div class="fg full">
+        <div class="flabel">Moeda</div>
+        <div class="pill-row">
+          <div class="pill p-eur active" onclick="setEntrCurrency('eur',this)">🇮🇹 EUR</div>
+          <div class="pill p-brl" onclick="setEntrCurrency('brl',this)">🇧🇷 BRL</div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="flabel">Data</div>
+        <input class="finput" type="date" id="entr-data" />
+      </div>
+      <div class="fg">
+        <div class="flabel">Valor</div>
+        <div class="finput-prefix">
+          <span class="prefix" id="entr-symbol">€</span>
+          <input class="finput" type="number" id="entr-valor" placeholder="0,00" step="0.01" min="0" />
+        </div>
+      </div>
+      <div class="fg">
+        <div class="flabel">Tipo</div>
+        <select class="finput" id="entr-tipo">
+          <option>Salário</option>
+          <option>Bônus</option>
+          <option>Rendimento investimento</option>
+          <option>Renda Variável</option>
+          <option>Freelance / Extra</option>
+          <option>Transferência recebida</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="flabel">Conta destino</div>
+        <select class="finput" id="entr-conta">
+          <option>Unicredit (Buddy)</option>
+          <option>MPS</option>
+          <option>Itaú Personnalité</option>
+          <option>XP</option>
+          <option>Nubank</option>
+          <option>Bradesco</option>
+        </select>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Titular</div>
+        <div class="pill-row">
+          <div class="pill p-cam active" id="ep-cam" onclick="setEntrTitular('cam')">Camila</div>
+          <div class="pill p-ayr" id="ep-ayr" onclick="setEntrTitular('ayr')">Ayrton</div>
+          <div class="pill p-con" id="ep-con" onclick="setEntrTitular('con')">Conjunto</div>
+        </div>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Recorrência</div>
+        <div class="pill-row">
+          <div class="pill p-fix active" id="ef-fix" onclick="setEntrRec('fix')">🔁 Fixo</div>
+          <div class="pill p-var" id="ef-var" onclick="setEntrRec('var')">⚡ Variável</div>
+        </div>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Descrição</div>
+        <input class="finput" type="text" id="entr-desc" placeholder="Ex: salário junho, bônus semestral..." />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveEntrada()">Salvar entrada</button>
+  </div>
+
+  <div class="list-card" id="entr-list">
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--eur-c);"></div>
+      <div class="list-info"><div class="list-desc">Salário Camila</div><div class="list-sub">15/06 · Unicredit · <span style="color:var(--camila);">Camila</span></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-fix">🔁 Fixo</div>
+        <div class="list-val pos">+ € 1.500</div>
+      </div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--ayrton);"></div>
+      <div class="list-info"><div class="list-desc">Salário Ayrton</div><div class="list-sub">31/05 · Unicredit · <span style="color:var(--ayrton);">Ayrton</span></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-fix">🔁 Fixo</div>
+        <div class="list-val pos">+ € 2.050</div>
+      </div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--camila);"></div>
+      <div class="list-info"><div class="list-desc">Bônus DL</div><div class="list-sub">10/06 · MPS · <span style="color:var(--camila);">Camila</span></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge badge-var">⚡ Variável</div>
+        <div class="list-val pos">+ € 324</div>
+      </div>
+    </div>
+    <div class="list-row">
+      <div class="list-dot" style="background:var(--brl-c);"></div>
+      <div class="list-info"><div class="list-desc">Renda Variável — imóvel BR</div><div class="list-sub">01/06 · Itaú · <span style="color:var(--ayrton);">Ayrton</span></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge" style="background:var(--camila-bg);color:var(--camila);">Invest.</div>
+        <div class="list-val pos text-brl">+ R$ 2.800</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CASHFLOW ==================== -->
+<div class="tab-content" id="tab-cashflow">
+  <div class="section-title">Entradas vs Saídas — 12 meses</div>
+  <div class="chart-card">
+    <div class="chart-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--eur-c);"></div>Entradas</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--danger);"></div>Saídas</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold);border-radius:50%;"></div>Saldo</div>
+    </div>
+    <canvas id="cfMainChart" height="140"></canvas>
+  </div>
+
+  <div class="section-title">Fluxo de Caixa 2026 <span style="font-size:10px;color:#aaa;font-weight:400;">← role →</span></div>
+  <div class="table-wrap">
+    <table class="dre-table" id="dre-table">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th>
+          <th class="cur">Jun ★</th>
+          <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th>
+          <th>Total</th><th>%</th>
+        </tr>
+      </thead>
+      <tbody id="dre-body"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Alertas — próximos vencimentos</div>
+  <div class="alert-card danger">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-body">
+      <div class="alert-title">Mútuo (MPS) — dia 01/Jul</div>
+      <div class="alert-text">- € 713 · Saldo atual: € 3.863 — suficiente.</div>
+    </div>
+  </div>
+  <div class="alert-card warn">
+    <div class="alert-icon">📅</div>
+    <div class="alert-body">
+      <div class="alert-title">Fatura Unicredit Buddy — dia 05/Jul</div>
+      <div class="alert-text">- € 570 · Saldo após mútuo: € 3.150 — suficiente.</div>
+    </div>
+  </div>
+  <div class="alert-card warn">
+    <div class="alert-icon">📅</div>
+    <div class="alert-body">
+      <div class="alert-title">Prestito — dia 15/Jul</div>
+      <div class="alert-text">- € 240 · Aguarda entrada de salário no dia 15.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Despesas fixas mensais</div>
+  <div class="fixas-card">
+    <div class="fixas-row">
+      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Mútuo (MPS) <span class="fixas-day">dia 1</span></div>
+      <div class="fixas-val">- € 713</div>
+    </div>
+    <div class="fixas-row">
+      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Fatura Unicredit <span class="fixas-day">dia 5</span></div>
+      <div class="fixas-val">- € 570</div>
+    </div>
+    <div class="fixas-row">
+      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Prestito <span class="fixas-day">dia 15</span></div>
+      <div class="fixas-val">- € 240</div>
+    </div>
+    <div class="fixas-row">
+      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Condomínio <span class="fixas-day">dia 10</span></div>
+      <div class="fixas-val">- € 150</div>
+    </div>
+    <div class="fixas-row">
+      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Internet <span class="fixas-day">dia 1</span></div>
+      <div class="fixas-val">- € 34</div>
+    </div>
+    <div class="fixas-row">
+      <div class="fixas-info"><span class="list-badge badge-brl">BRL</span> Aporte XP <span class="fixas-day">dia 2</span></div>
+      <div class="fixas-val text-brl">- R$ 1.500</div>
+    </div>
+    <div class="fixas-total-row">
+      <span class="fs12" style="color:#888;">Total fixo/mês (EUR)</span>
+      <span class="fw7 text-danger" style="font-size:14px;">- € 1.707</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== INVESTIMENTOS ==================== -->
+<div class="tab-content" id="tab-investimentos">
+  <div class="patrim-card">
+    <div class="patrim-item">
+      <div class="patrim-lbl">Patrimônio total</div>
+      <div class="patrim-val text-gold">R$ 748.400</div>
+      <div class="patrim-note">Imóveis + investimentos + caixa</div>
+    </div>
+    <div class="patrim-item">
+      <div class="patrim-lbl">Em Euro (ref.)</div>
+      <div class="patrim-val text-eur">≈ € 121.100</div>
+      <div class="patrim-note">EUR/BRL <span id="inv-fx">6,18</span></div>
+    </div>
+    <div class="patrim-item">
+      <div class="patrim-lbl">Rendimento mês</div>
+      <div class="patrim-val text-cam">R$ +1.240</div>
+      <div class="patrim-note">Carteira financeira</div>
+    </div>
+    <div class="patrim-item">
+      <div class="patrim-lbl">Rentab. anual</div>
+      <div class="patrim-val text-eur">+9,8%</div>
+      <div class="patrim-note">vs SELIC 13,25%</div>
+    </div>
+  </div>
+
+  <div class="section-title">Indicadores de mercado</div>
+  <div class="ind-grid">
+    <div class="ind-card"><div class="ind-name">SELIC</div><div class="ind-val">13,25%</div><div class="ind-delta" style="color:var(--eur-c);">▲ a.a.</div></div>
+    <div class="ind-card"><div class="ind-name">CDI</div><div class="ind-val">13,15%</div><div class="ind-delta" style="color:var(--eur-c);">▲ a.a.</div></div>
+    <div class="ind-card"><div class="ind-name">EURIBOR</div><div class="ind-val">2,40%</div><div class="ind-delta" style="color:var(--danger);">▼ 3M</div></div>
+    <div class="ind-card"><div class="ind-name">EUR/BRL</div><div class="ind-val" id="inv-eurbrl">6,18</div><div class="ind-delta" style="color:var(--eur-c);">▲ ao vivo</div></div>
+  </div>
+
+  <div class="section-title">🇧🇷 Carteira Brasil — XP Investimentos</div>
+  <div class="port-card">
+    <div class="port-header">
+      <span style="font-size:18px;">🇧🇷</span>
+      <span class="fw7 fs13">XP — CC 8019065</span>
+      <div class="port-total text-brl">R$ 148.400</div>
+    </div>
+    <div class="port-row">
+      <div class="port-dot" style="background:var(--eur-c);"></div>
+      <div class="port-name">Renda Fixa / CDB <span class="port-sub">SELIC+</span></div>
+      <div class="port-bar-wrap"><div class="port-bar" style="width:55%;background:var(--eur-c);"></div></div>
+      <div class="port-pct">55%</div>
+      <div class="port-val text-brl">R$ 81.620</div>
+      <div class="port-rent" style="color:var(--success);">+13,4%</div>
+    </div>
+    <div class="port-row">
+      <div class="port-dot" style="background:var(--info);"></div>
+      <div class="port-name">Fundos multimercado</div>
+      <div class="port-bar-wrap"><div class="port-bar" style="width:25%;background:var(--info);"></div></div>
+      <div class="port-pct">25%</div>
+      <div class="port-val text-brl">R$ 37.100</div>
+      <div class="port-rent" style="color:var(--success);">+8,1%</div>
+    </div>
+    <div class="port-row">
+      <div class="port-dot" style="background:var(--gold);"></div>
+      <div class="port-name">Ações / FIIs</div>
+      <div class="port-bar-wrap"><div class="port-bar" style="width:12%;background:var(--gold);"></div></div>
+      <div class="port-pct">12%</div>
+      <div class="port-val text-brl">R$ 17.808</div>
+      <div class="port-rent" style="color:var(--success);">+5,3%</div>
+    </div>
+    <div class="port-row">
+      <div class="port-dot" style="background:var(--camila);"></div>
+      <div class="port-name">Cripto <span class="port-sub">BTC/ETH</span></div>
+      <div class="port-bar-wrap"><div class="port-bar" style="width:8%;background:var(--camila);"></div></div>
+      <div class="port-pct">8%</div>
+      <div class="port-val text-brl">R$ 11.872</div>
+      <div class="port-rent" style="color:var(--success);">+21%</div>
+    </div>
+  </div>
+
+  <div class="section-title">🇮🇹 Caixa Itália</div>
+  <div class="port-card">
+    <div class="port-header">
+      <span style="font-size:18px;">🇮🇹</span>
+      <span class="fw7 fs13">MPS + Unicredit</span>
+      <div class="port-total text-eur">€ 3.863</div>
+    </div>
+    <div class="port-row">
+      <div class="port-dot" style="background:var(--eur-c);"></div>
+      <div class="port-name">Unicredit (Buddy)</div>
+      <div class="port-bar-wrap"><div class="port-bar" style="width:58%;background:var(--eur-c);"></div></div>
+      <div class="port-pct">58%</div>
+      <div class="port-val text-eur">€ 2.238</div>
+      <div class="port-rent" style="color:#aaa;">0,0%</div>
+    </div>
+    <div class="port-row">
+      <div class="port-dot" style="background:var(--info);"></div>
+      <div class="port-name">MPS (Banca Monte dei Paschi)</div>
+      <div class="port-bar-wrap"><div class="port-bar" style="width:42%;background:var(--info);"></div></div>
+      <div class="port-pct">42%</div>
+      <div class="port-val text-eur">€ 1.625</div>
+      <div class="port-rent" style="color:#aaa;">0,0%</div>
+    </div>
+    <div class="alert-card info" style="margin-top:10px;margin-bottom:0;">
+      <div class="alert-icon">💡</div>
+      <div class="alert-body">
+        <div class="alert-title">Oportunidade — Itália sem alocação ativa</div>
+        <div class="alert-text">EURIBOR 2,4% — contas remuneradas IT pagam até 2,8% a.a. BTP curto prazo rende ~3,1%. Retomar na aba Operação.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Imóveis</div>
+  <div class="card-white mb12">
+    <div class="imovel-row">
+      <div>
+        <div class="imovel-name">🇧🇷 Imóvel Brasil</div>
+        <div class="imovel-sub">Residencial · São Paulo</div>
+      </div>
+      <div>
+        <div class="imovel-val text-brl">R$ 600.000</div>
+        <div class="imovel-renda text-success">Renda Variável: R$ 2.800/mês</div>
+      </div>
+    </div>
+    <div class="imovel-row">
+      <div>
+        <div class="imovel-name">🇮🇹 Imóvel Itália</div>
+        <div class="imovel-sub">Residencial · Milano · financiado</div>
+      </div>
+      <div>
+        <div class="imovel-val text-eur">€ 340.000</div>
+        <div class="imovel-renda text-danger">Mútuo: - € 713/mês</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Evolução patrimonial</div>
+  <div class="chart-card">
+    <div class="chart-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--gold);"></div>Patrimônio (R$)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--eur-c);border-radius:50%;"></div>Saldo anual</div>
+    </div>
+    <canvas id="evolChart" height="130"></canvas>
+  </div>
+</div>
+
+<!-- ==================== OPERAÇÃO ==================== -->
+<div class="tab-content" id="tab-operacao">
+  <div class="placeholder-card">
+    <div class="placeholder-icon">🚀</div>
+    <div class="placeholder-title">Operação — Em breve</div>
+    <div class="placeholder-text">
+      Esta aba será ativada quando vocês retomarem os investimentos ativos.<br><br>
+      Aqui estarão: análise de mercado em tempo real, oportunidades BR e IT, comparativo de fundos, estratégias de entrada e saída, e dicas personalizadas com base no perfil de vocês.
+    </div>
+  </div>
+  <div class="alert-card info" style="margin-top:0;">
+    <div class="alert-icon">📊</div>
+    <div class="alert-body">
+      <div class="alert-title">Já integrado — aguardando ativação</div>
+      <div class="alert-text">A busca por dados reais de mercado (Bovespa, ETFs europeus, BTP, cripto) já está arquitetada. Quando chegar a hora, é só ligar.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ESTRATÉGIA ==================== -->
+<div class="tab-content" id="tab-estrategia">
+  <div class="section-title">Saúde financeira</div>
+  <div class="health-card">
+    <div class="score-wrap">
+      <canvas id="estratScore" width="80" height="80"></canvas>
+      <div class="score-label-wrap">
+        <div class="score-num">72</div>
+        <div class="score-txt">/ 100</div>
+      </div>
+    </div>
+    <div class="health-details">
+      <div class="health-title">Boa — com atenção</div>
+      <div class="health-sub">Patrimônio sólido e crescente. Atenção ao comprometimento com dívidas fixas mensais.</div>
+      <div class="hbar-row">
+        <div class="hbar-label">Reserva emergência</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:21%;background:var(--warn);"></div></div>
+        <div class="hbar-val text-warn">21%</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">Comprom. renda</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:68%;background:var(--danger);"></div></div>
+        <div class="hbar-val text-danger">68%</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">Taxa poupança</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:32%;background:var(--eur-c);"></div></div>
+        <div class="hbar-val text-eur">32%</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">Diversificação</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:60%;background:var(--gold);"></div></div>
+        <div class="hbar-val text-gold">60%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Insights &amp; recomendações</div>
+  <div class="alert-card warn">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-body">
+      <div class="alert-title">Comprometimento de renda acima do ideal</div>
+      <div class="alert-text">68% da renda comprometida (ideal: abaixo de 50%). Priorize quitar o prestito (taxa 8,4%) para liberar fôlego mensal.</div>
+    </div>
+  </div>
+  <div class="alert-card danger">
+    <div class="alert-icon">💰</div>
+    <div class="alert-body">
+      <div class="alert-title">Reserva de emergência insuficiente</div>
+      <div class="alert-text">Cobertura atual: 1,3 meses. Meta ideal: 6 meses (≈ € 18.000). Sugestão: € 300/mês em conta separada.</div>
+    </div>
+  </div>
+  <div class="alert-card success">
+    <div class="alert-icon">✅</div>
+    <div class="alert-body">
+      <div class="alert-title">Patrimônio em crescimento consistente</div>
+      <div class="alert-text">+R$ 94.653 em 2024. Imóvel BR e XP são âncoras sólidas. Manter aporte mensal é a estratégia correta.</div>
+    </div>
+  </div>
+  <div class="alert-card info">
+    <div class="alert-icon">📈</div>
+    <div class="alert-body">
+      <div class="alert-title">Itália sem alocação ativa — oportunidade</div>
+      <div class="alert-text">EURIBOR 2,4% — conta remunerada IT até 2,8% a.a. BTP curto prazo ~3,1%. Retomar na aba Operação.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Análise de financiamentos</div>
+  <div class="debt-wrap">
+    <table class="debt-table">
+      <thead>
+        <tr>
+          <th>Dívida</th><th>Taxa</th><th>Parcela</th><th>Saldo dev.</th><th>Quitação</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mútuo imóvel (MPS)</td>
+          <td><span class="rate-badge rate-low">2,1% a.a.</span></td>
+          <td>€ 713/mês</td>
+          <td>≈ € 200k</td>
+          <td>~23 anos</td>
+        </tr>
+        <tr>
+          <td>Prestito pessoal</td>
+          <td><span class="rate-badge rate-high">8,4% a.a.</span></td>
+          <td>€ 240/mês</td>
+          <td>≈ € 8.400</td>
+          <td>~3 anos</td>
+        </tr>
+        <tr>
+          <td>Fatura cartão</td>
+          <td><span class="rate-badge rate-mid">0% (evitado)</span></td>
+          <td>€ 570/mês</td>
+          <td>—</td>
+          <td>Mensal</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="debt-footer">
+      <span style="color:#555;">💡 Prioridade: quitar prestito (8,4%) antes de novo capital</span>
+      <span class="fw7 text-danger">- € 1.523/mês</span>
+    </div>
+  </div>
+
+  <div class="section-title">Metas financeiras
+    <button class="btn-secondary" onclick="document.getElementById('modal-meta').classList.add('open')">+ Nova meta</button>
+  </div>
+  <div class="card-white mb12" id="metas-list">
+    <div style="padding:12px;" id="metas-content">
+      <div class="meta-item">
+        <div class="meta-hdr">
+          <div class="meta-name">🏦 Reserva de emergência</div>
+          <button class="btn-secondary" style="font-size:10px;padding:3px 8px;" onclick="editMeta(0)">✏️ Editar</button>
+        </div>
+        <div class="meta-vals">€ 3.863 de € 18.000 · € 300/mês</div>
+        <div class="progress-track"><div class="progress-fill" style="width:21%;background:var(--warn);"></div></div>
+        <div class="meta-foot"><span>21% atingido</span><span>Previsão: dez/2027</span></div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-hdr">
+          <div class="meta-name">🚗 Carro novo (Itália)</div>
+          <button class="btn-secondary" style="font-size:10px;padding:3px 8px;" onclick="editMeta(1)">✏️ Editar</button>
+        </div>
+        <div class="meta-vals">€ 0 de € 15.000 · valor/mês a definir</div>
+        <div class="progress-track"><div class="progress-fill" style="width:1%;background:var(--info);"></div></div>
+        <div class="meta-foot"><span>Não iniciado</span><span>—</span></div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-hdr">
+          <div class="meta-name">💼 Aporte anual XP</div>
+          <button class="btn-secondary" style="font-size:10px;padding:3px 8px;" onclick="editMeta(2)">✏️ Editar</button>
+        </div>
+        <div class="meta-vals">R$ 9.000 de R$ 18.000 · R$ 1.500/mês</div>
+        <div class="progress-track"><div class="progress-fill" style="width:50%;background:var(--eur-c);"></div></div>
+        <div class="meta-foot"><span>50% atingido · jun/2026</span><span>No prazo ✓</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Simulador — e se?</div>
+  <div class="card-white mb12" style="padding:14px;">
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="setSimTab('antecipar',this)">Antecipar dívida</button>
+      <button class="inner-tab" onclick="setSimTab('nova',this)">Nova despesa fixa</button>
+    </div>
+    <div class="inner-section active" id="sim-antecipar">
+      <div style="margin-bottom:10px;">
+        <div class="flabel mb8">Qual dívida antecipar?</div>
+        <select class="finput" id="sim-divida" onchange="calcAntecipar()">
+          <option value="8400,0.7,240">Prestito pessoal (8,4% a.a.) · € 240/mês</option>
+          <option value="200000,0.175,713">Mútuo MPS (2,1% a.a.) · € 713/mês</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span class="flabel" style="width:130px;flex-shrink:0;">Parcela extra/mês</span>
+        <input type="range" min="50" max="1000" value="240" step="10" id="slid-ant" oninput="calcAntecipar()" style="flex:1;">
+        <span id="slid-ant-val" class="fw7 fs12" style="width:50px;text-align:right;">€ 240</span>
+      </div>
+      <div class="sim-result">
+        <div class="sr-item"><div class="sr-label">Quitação em</div><div class="sr-val text-eur" id="r-meses">—</div></div>
+        <div class="sr-item"><div class="sr-label">Economia juros</div><div class="sr-val text-gold" id="r-econ">—</div></div>
+        <div class="sr-item"><div class="sr-label">Libera/mês após</div><div class="sr-val text-cam" id="r-libera">—</div></div>
+      </div>
+    </div>
+    <div class="inner-section" id="sim-nova">
+      <div style="margin-bottom:10px;">
+        <div class="flabel mb8">Nova despesa</div>
+        <input class="finput" id="nova-desp-nome" placeholder="Ex: academia, streaming, aluguel carro..." oninput="calcNova()" />
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span class="flabel" style="width:130px;flex-shrink:0;">Valor mensal</span>
+        <input type="range" min="10" max="1000" value="150" step="10" id="slid-nova" oninput="calcNova()" style="flex:1;">
+        <span id="slid-nova-val" class="fw7 fs12" style="width:50px;text-align:right;">€ 150</span>
+      </div>
+      <div class="sim-result">
+        <div class="sr-item"><div class="sr-label">Impacto/mês</div><div class="sr-val text-danger" id="nv-mes">- € 150</div></div>
+        <div class="sr-item"><div class="sr-label">Impacto/ano</div><div class="sr-val text-warn" id="nv-ano">- € 1.800</div></div>
+        <div class="sr-item"><div class="sr-label">Sobra restante</div><div class="sr-val text-eur" id="nv-sobra">€ 269</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Análise de saldo diário — Jun/2026</div>
+  <div class="card-white mb12" style="padding:12px;">
+    <div class="flex-between mb8">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--warn);"></div>
+        <span class="fs12 fw7">Atenção — saldo apertado entre dias 01–05</span>
+      </div>
+      <span class="fs10" style="color:#aaa;">Saldo inicial: € 3.444</span>
+    </div>
+    <div class="daily-row crit">
+      <div class="daily-date">01/Jun</div>
+      <div class="daily-desc">Mútuo MPS (- € 713) + Aporte XP (- R$ 1.500) · saldo cai para € 2.731</div>
+      <div class="daily-amt">€ 2.731</div>
+    </div>
+    <div class="daily-row warn">
+      <div class="daily-date">05/Jun</div>
+      <div class="daily-desc">Fatura Unicredit Buddy (- € 570) · saldo mínimo previsto</div>
+      <div class="daily-amt">€ 2.161</div>
+    </div>
+    <div class="daily-row ok">
+      <div class="daily-date">15/Jun</div>
+      <div class="daily-desc">Salário Camila (+ € 1.200) · Prestito (- € 240) · saldo recupera</div>
+      <div class="daily-amt">€ 3.121</div>
+    </div>
+    <div class="daily-row ok">
+      <div class="daily-date">31/Mai</div>
+      <div class="daily-desc">Salário Ayrton (+ € 2.857) · fecha o mês positivo</div>
+      <div class="daily-amt">€ 3.863</div>
+    </div>
+    <div class="sim-result" style="margin-top:10px;">
+      <div class="sr-item"><div class="sr-label">Saldo mínimo</div><div class="sr-val text-warn">€ 2.161</div></div>
+      <div class="sr-item"><div class="sr-label">Dia crítico</div><div class="sr-val text-danger">05/Jun</div></div>
+      <div class="sr-item"><div class="sr-label">Risco negativo</div><div class="sr-val text-eur">Não</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bn-item active" onclick="showTab('dashboard',null,this)">
+    <div class="bn-icon">🏠</div><div class="bn-label">Dashboard</div>
+  </div>
+  <div class="bn-item" onclick="showTab('despesas',null,this)">
+    <div class="bn-icon">💸</div><div class="bn-label">Despesas</div>
+  </div>
+  <div class="bn-item" onclick="showTab('cashflow',null,this)">
+    <div class="bn-icon">📊</div><div class="bn-label">Cashflow</div>
+  </div>
+  <div class="bn-item" onclick="showTab('investimentos',null,this)">
+    <div class="bn-icon">💼</div><div class="bn-label">Invest.</div>
+  </div>
+  <div class="bn-item" onclick="showTab('estrategia',null,this)">
+    <div class="bn-icon">🎯</div><div class="bn-label">Estratégia</div>
+  </div>
+</nav>
+
+<!-- MODAL NOVA META -->
+<div class="modal-overlay" id="modal-meta" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-meta-title">Nova meta financeira</div>
+      <button class="modal-close" onclick="document.getElementById('modal-meta').classList.remove('open')">×</button>
+    </div>
+    <div class="fg mb8">
+      <div class="flabel">Nome da meta</div>
+      <input class="finput" id="meta-nome" placeholder="Ex: viagem Japão, reforma casa..." />
+    </div>
+    <div class="fg mb8">
+      <div class="flabel">Moeda</div>
+      <div class="pill-row">
+        <div class="pill p-eur active" id="meta-pill-eur" onclick="setMetaCurrency('eur')">🇮🇹 EUR</div>
+        <div class="pill p-brl" id="meta-pill-brl" onclick="setMetaCurrency('brl')">🇧🇷 BRL</div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="fg">
+        <div class="flabel">Valor objetivo</div>
+        <div class="finput-prefix">
+          <span class="prefix" id="meta-symbol">€</span>
+          <input class="finput" id="meta-objetivo" placeholder="0,00" type="number" step="100" min="0" />
+        </div>
+      </div>
+      <div class="fg">
+        <div class="flabel">Valor atual</div>
+        <div class="finput-prefix">
+          <span class="prefix" id="meta-symbol2">€</span>
+          <input class="finput" id="meta-atual" placeholder="0,00" type="number" step="100" min="0" />
+        </div>
+      </div>
+      <div class="fg">
+        <div class="flabel">Aporte mensal</div>
+        <div class="finput-prefix">
+          <span class="prefix" id="meta-symbol3">€</span>
+          <input class="finput" id="meta-aporte" placeholder="0,00" type="number" step="50" min="0" />
+        </div>
+      </div>
+      <div class="fg">
+        <div class="flabel">Prazo (mês/ano)</div>
+        <input class="finput" id="meta-prazo" placeholder="Ex: dez/2027" />
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal-meta').classList.remove('open')">Cancelar</button>
+      <button class="btn-save-m" onclick="saveMeta()">Salvar meta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA STORE (localStorage)
+// ============================================================
+const DB = {
+  get: (k,def=[]) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+let despesas = DB.get('sc_despesas');
+let entradas = DB.get('sc_entradas');
+let metas = DB.get('sc_metas', [
+  {nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:3863,aporte:300,prazo:'dez/2027'},
+  {nome:'🚗 Carro novo (Itália)',moeda:'EUR',obj:15000,atual:0,aporte:0,prazo:'—'},
+  {nome:'💼 Aporte anual XP',moeda:'BRL',obj:18000,atual:9000,aporte:1500,prazo:'dez/2026'},
+]);
+let currentCountry = 'it';
+let despCurrency = 'eur';
+let despTitular = 'cam';
+let despTipo = 'fix';
+let despConta = '';
+let entrTitular = 'cam';
+let entrRec = 'fix';
+let metaCurrency = 'eur';
+let editingMeta = -1;
+let charts = {};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showTab(tabId, navEl, bnEl) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  if (navEl) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    navEl.classList.add('active');
+  } else {
+    // sync nav
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.textContent.trim().toLowerCase().startsWith(tabId.slice(0,4))) n.classList.add('active');
+    });
+  }
+  if (bnEl) {
+    document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+    bnEl.classList.add('active');
+  }
+  // init charts lazily
+  const inits = {
+    dashboard: initDashCharts,
+    resumo: initResumoCharts,
+    cashflow: initCfCharts,
+    investimentos: initInvestCharts,
+    estrategia: initEstratCharts,
+  };
+  if (inits[tabId]) setTimeout(inits[tabId], 50);
+}
+
+// ============================================================
+// COUNTRY SWITCHER
+// ============================================================
+function setCountry(c, el) {
+  currentCountry = c;
+  document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ============================================================
+// EXCHANGE RATES
+// ============================================================
+let fxRates = { EURBRL: 6.18, USDBRL: 5.74, EURUSD: 1.075 };
+
+async function fetchRates() {
+  try {
+    const r = await fetch('https://open.er-api.com/v6/latest/EUR');
+    const d = await r.json();
+    if (d.rates) {
+      fxRates.EURBRL = d.rates.BRL;
+      fxRates.USDBRL = d.rates.BRL / d.rates.USD;
+      fxRates.EURUSD = d.rates.USD;
+      updateTicker();
+    }
+  } catch(e) { console.log('FX offline, using defaults'); }
+}
+
+function updateTicker() {
+  const f = n => n.toFixed(2);
+  document.getElementById('t-eurbrl').textContent = f(fxRates.EURBRL);
+  document.getElementById('t-usdbrl').textContent = f(fxRates.USDBRL);
+  document.getElementById('t-eurusd').textContent = f(fxRates.EURUSD);
+  const inv = document.getElementById('inv-eurbrl');
+  if (inv) inv.textContent = f(fxRates.EURBRL);
+  const invfx = document.getElementById('inv-fx');
+  if (invfx) invfx.textContent = f(fxRates.EURBRL);
+  const now = new Date();
+  const el = document.getElementById('t-time');
+  if (el) el.innerHTML = `Atualizado <b>${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</b>`;
+}
+
+// ============================================================
+// DESPESAS FORM
+// ============================================================
+function toggleForm(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') {
+    const today = new Date().toISOString().split('T')[0];
+    const f = document.getElementById('desp-data');
+    if (f) f.value = today;
+    const ef = document.getElementById('entr-data');
+    if (ef) ef.value = today;
+  }
+}
+
+function setDespCurrency(c) {
+  despCurrency = c;
+  document.getElementById('desp-pill-eur').classList.toggle('active', c === 'eur');
+  document.getElementById('desp-pill-brl').classList.toggle('active', c === 'brl');
+  document.getElementById('desp-symbol').textContent = c === 'eur' ? '€' : 'R$';
+  document.getElementById('desp-banner').textContent = c === 'eur'
+    ? 'Despesa em Euro — contas italianas' : 'Despesa em Real — contas brasileiras';
+  document.getElementById('desp-banner').className = 'currency-banner ' + c;
+  document.getElementById('desp-contas-eur').style.display = c === 'eur' ? 'flex' : 'none';
+  document.getElementById('desp-contas-brl').style.display = c === 'brl' ? 'flex' : 'none';
+  despConta = '';
+  // reset active conta pills
+  document.querySelectorAll('#desp-contas-eur .conta-pill, #desp-contas-brl .conta-pill').forEach(p => {
+    p.classList.remove('a-eur','a-brl');
+  });
+  const firstActive = document.getElementById(c === 'eur' ? 'desp-contas-eur' : 'desp-contas-brl').querySelector('.conta-pill');
+  if (firstActive) { firstActive.classList.add(c === 'eur' ? 'a-eur' : 'a-brl'); despConta = firstActive.textContent; }
+}
+
+function selectConta(el, cur) {
+  const group = el.closest('.conta-opts');
+  group.querySelectorAll('.conta-pill').forEach(p => p.classList.remove('a-eur','a-brl'));
+  el.classList.add(cur === 'eur' ? 'a-eur' : 'a-brl');
+  despConta = el.textContent;
+}
+
+function setTitular(t) {
+  despTitular = t;
+  ['cam','ayr','con'].forEach(x => document.getElementById('dp-'+x)?.classList.toggle('active', x === t));
+}
+
+function setTipo(t) {
+  despTipo = t;
+  document.getElementById('dp-fix').classList.toggle('active', t === 'fix');
+  document.getElementById('dp-var').classList.toggle('active', t === 'var');
+  const hint = document.getElementById('desp-tipo-hint');
+  hint.className = 'tipo-hint ' + (t === 'fix' ? 'fixa' : 'variavel');
+  hint.textContent = t === 'fix'
+    ? 'Despesa que se repete todo mês — ex: mútuo, condomínio, assinatura'
+    : 'Gasto pontual, não recorrente — ex: mercado, restaurante, viagem, consulta';
+}
+
+function saveDespesa() {
+  const valor = parseFloat(document.getElementById('desp-valor').value);
+  const data = document.getElementById('desp-data').value;
+  const cat = document.getElementById('desp-categoria').value;
+  const desc = document.getElementById('desp-desc').value;
+  const local = document.getElementById('desp-local').value;
+  if (!valor || !data) { alert('Preencha data e valor.'); return; }
+  const item = { id: Date.now(), data, valor, moeda: despCurrency, categoria: cat,
+    desc, local, titular: despTitular, tipo: despTipo, conta: despConta };
+  despesas.push(item);
+  DB.set('sc_despesas', despesas);
+  renderDespList();
+  document.getElementById('desp-valor').value = '';
+  document.getElementById('desp-desc').value = '';
+  document.getElementById('desp-local').value = '';
+  toggleForm('desp-form');
+}
+
+function renderDespList() {
+  const list = document.getElementById('desp-list');
+  const userItems = despesas.slice().reverse().slice(0, 20);
+  if (userItems.length === 0) return;
+  // keep demo rows + add new ones at top
+  const existingDemo = list.querySelectorAll('.list-row');
+  userItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'list-row';
+    const cur = item.moeda === 'eur' ? 'EUR' : 'BRL';
+    const sym = item.moeda === 'eur' ? '€' : 'R$';
+    const col = item.moeda === 'eur' ? 'var(--eur-c)' : 'var(--brl-c)';
+    const titCol = item.titular === 'cam' ? 'var(--camila)' : item.titular === 'ayr' ? 'var(--ayrton)' : '#aaa';
+    const titName = item.titular === 'cam' ? 'Camila' : item.titular === 'ayr' ? 'Ayrton' : 'Conjunto';
+    const tipoLabel = item.tipo === 'fix' ? '🔁 Fixa' : '⚡ Variável';
+    div.innerHTML = `
+      <div class="list-dot" style="background:${col};"></div>
+      <div class="list-info">
+        <div class="list-desc">${item.desc || item.categoria}</div>
+        <div class="list-sub">${item.data} · ${item.conta} · <span style="color:${titCol};">${titName}</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <div class="list-badge ${item.tipo==='fix'?'badge-fix':'badge-var'}">${tipoLabel}</div>
+        <div class="list-val neg">- ${sym} ${item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>`;
+    list.insertBefore(div, list.firstChild);
+  });
+}
+
+function filterDespMonth(v) {}
+
+// ============================================================
+// ENTRADAS FORM
+// ============================================================
+function setEntrCurrency(c, el) {
+  document.querySelectorAll('#entr-form .pill.p-eur, #entr-form .pill.p-brl').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('entr-symbol').textContent = c === 'eur' ? '€' : 'R$';
+}
+function setEntrTitular(t) {
+  entrTitular = t;
+  ['cam','ayr','con'].forEach(x => document.getElementById('ep-'+x)?.classList.toggle('active', x === t));
+}
+function setEntrRec(r) {
+  entrRec = r;
+  document.getElementById('ef-fix').classList.toggle('active', r === 'fix');
+  document.getElementById('ef-var').classList.toggle('active', r === 'var');
+}
+function saveEntrada() {
+  const valor = parseFloat(document.getElementById('entr-valor').value);
+  const data = document.getElementById('entr-data').value;
+  const tipo = document.getElementById('entr-tipo').value;
+  const desc = document.getElementById('entr-desc').value;
+  const conta = document.getElementById('entr-conta').value;
+  const moeda = document.getElementById('entr-symbol').textContent === '€' ? 'eur' : 'brl';
+  if (!valor || !data) { alert('Preencha data e valor.'); return; }
+  const item = { id: Date.now(), data, valor, moeda, tipo, desc, conta, titular: entrTitular, rec: entrRec };
+  entradas.push(item);
+  DB.set('sc_entradas', entradas);
+  document.getElementById('entr-valor').value = '';
+  document.getElementById('entr-desc').value = '';
+  toggleForm('entr-form');
+}
+
+// ============================================================
+// METAS
+// ============================================================
+function setMetaCurrency(c) {
+  metaCurrency = c;
+  ['eur','brl'].forEach(x => document.getElementById('meta-pill-'+x).classList.toggle('active', x === c));
+  const sym = c === 'eur' ? '€' : 'R$';
+  ['meta-symbol','meta-symbol2','meta-symbol3'].forEach(id => document.getElementById(id).textContent = sym);
+}
+
+function saveMeta() {
+  const nome = document.getElementById('meta-nome').value.trim();
+  const obj = parseFloat(document.getElementById('meta-objetivo').value) || 0;
+  const atual = parseFloat(document.getElementById('meta-atual').value) || 0;
+  const aporte = parseFloat(document.getElementById('meta-aporte').value) || 0;
+  const prazo = document.getElementById('meta-prazo').value.trim();
+  if (!nome || !obj) { alert('Preencha nome e valor objetivo.'); return; }
+  const meta = { nome, moeda: metaCurrency.toUpperCase(), obj, atual, aporte, prazo };
+  if (editingMeta >= 0) { metas[editingMeta] = meta; editingMeta = -1; }
+  else { metas.push(meta); }
+  DB.set('sc_metas', metas);
+  renderMetas();
+  document.getElementById('modal-meta').classList.remove('open');
+  ['meta-nome','meta-objetivo','meta-atual','meta-aporte','meta-prazo'].forEach(id => document.getElementById(id).value = '');
+}
+
+function editMeta(i) {
+  editingMeta = i;
+  const m = metas[i];
+  document.getElementById('meta-nome').value = m.nome;
+  document.getElementById('meta-objetivo').value = m.obj;
+  document.getElementById('meta-atual').value = m.atual;
+  document.getElementById('meta-aporte').value = m.aporte;
+  document.getElementById('meta-prazo').value = m.prazo;
+  setMetaCurrency(m.moeda === 'EUR' ? 'eur' : 'brl');
+  document.getElementById('modal-meta-title').textContent = 'Editar meta';
+  document.getElementById('modal-meta').classList.add('open');
+}
+
+function renderMetas() {
+  const container = document.getElementById('metas-content');
+  const colors = ['var(--warn)','var(--info)','var(--eur-c)','var(--gold)','var(--camila)'];
+  container.innerHTML = metas.map((m, i) => {
+    const pct = Math.min(100, Math.round((m.atual / m.obj) * 100)) || 0;
+    const sym = m.moeda === 'EUR' ? '€' : 'R$';
+    const col = colors[i % colors.length];
+    const mesesLeft = m.aporte > 0 ? Math.ceil((m.obj - m.atual) / m.aporte) : null;
+    const previsao = mesesLeft ? m.prazo || `~${mesesLeft} meses` : m.prazo || '—';
+    return `<div class="meta-item">
+      <div class="meta-hdr">
+        <div class="meta-name">${m.nome}</div>
+        <button class="btn-secondary" style="font-size:10px;padding:3px 8px;" onclick="editMeta(${i})">✏️ Editar</button>
+      </div>
+      <div class="meta-vals">${sym} ${m.atual.toLocaleString('pt-BR')} de ${sym} ${m.obj.toLocaleString('pt-BR')}${m.aporte ? ' · '+sym+' '+m.aporte.toLocaleString('pt-BR')+'/mês' : ''}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${col};"></div></div>
+      <div class="meta-foot"><span>${pct}% atingido</span><span>${previsao}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// SIMULADORES
+// ============================================================
+function setSimTab(tab, el) {
+  document.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.inner-section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sim-'+tab).classList.add('active');
+}
+
+function calcAntecipar() {
+  const sel = document.getElementById('sim-divida').value.split(',');
+  const saldo0 = parseFloat(sel[0]);
+  const taxaMes = parseFloat(sel[1]) / 100;
+  const parcOrig = parseFloat(sel[2]);
+  const extra = parseInt(document.getElementById('slid-ant').value);
+  document.getElementById('slid-ant-val').textContent = '€ ' + extra;
+  const parcela = parcOrig + extra;
+  let m = 0, tot = saldo0, j = 0;
+  while (tot > 0.01 && m < 600) { const ji = tot * taxaMes; j += ji; tot = tot + ji - parcela; m++; }
+  let mb = 0, totb = saldo0, jb = 0;
+  while (totb > 0.01 && mb < 600) { const ji = totb * taxaMes; jb += ji; totb = totb + ji - parcOrig; mb++; }
+  document.getElementById('r-meses').textContent = m + ' meses';
+  document.getElementById('r-econ').textContent = '€ ' + Math.max(0, Math.round(jb - j)).toLocaleString('pt-BR');
+  document.getElementById('r-libera').textContent = '€ ' + parcela.toLocaleString('pt-BR');
+}
+
+function calcNova() {
+  const val = parseInt(document.getElementById('slid-nova').value);
+  document.getElementById('slid-nova-val').textContent = '€ ' + val;
+  document.getElementById('nv-mes').textContent = '- € ' + val;
+  document.getElementById('nv-ano').textContent = '- € ' + (val * 12).toLocaleString('pt-BR');
+  const sobra = Math.max(0, 419 - val);
+  const el = document.getElementById('nv-sobra');
+  el.textContent = '€ ' + sobra.toLocaleString('pt-BR');
+  el.className = 'sr-val ' + (sobra < 0 ? 'text-danger' : sobra < 150 ? 'text-warn' : 'text-eur');
+}
+
+// ============================================================
+// IMPORT HANDLER (placeholder)
+// ============================================================
+function handleImport(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('import-status').textContent = `Processando: ${file.name}...`;
+  setTimeout(() => {
+    document.getElementById('import-status').textContent = `✅ ${file.name} importado. Categorização automática em breve.`;
+  }, 1500);
+}
+
+// ============================================================
+// CHART DATA
+// ============================================================
+const CF_DATA = {
+  meses: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+  entradas: [5434,11396,5271,5836,5175,6494,7014,4507,4507,4507,4507,7364],
+  saidas:   [5943,7420,8516,6662,5050,6075,4816,4878,4079,4343,4542,5173],
+  saldoIni: [3169,2610,7059,4057,3823,3444,3863,6062,5691,6119,6284,6249],
+  curIdx: 5,
+};
+CF_DATA.dre = CF_DATA.entradas.map((e,i) => e - CF_DATA.saidas[i]);
+CF_DATA.caixa = CF_DATA.saldoIni.map((s,i) => s + CF_DATA.dre[i]);
+
+const CAT_DATA = {
+  labels: ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Outros'],
+  values: [2777,3285,335,310,448,966,1366,1103,1426],
+  colors: ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#888'],
+};
+
+// ============================================================
+// CHARTS INIT
+// ============================================================
+function mkChart(id, cfg) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const el = document.getElementById(id);
+  if (!el) return;
+  charts[id] = new Chart(el.getContext('2d'), cfg);
+}
+
+function scoreDonut(id) {
+  if (charts[id]) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  charts[id] = new Chart(el.getContext('2d'), {
+    type: 'doughnut',
+    data: { datasets: [{ data: [72,28], backgroundColor: ['#C9A227','rgba(255,255,255,0.06)'], borderWidth: 0, circumference: 270, rotation: 225 }] },
+    options: { cutout: '78%', plugins: { legend:{display:false}, tooltip:{enabled:false} } }
+  });
+}
+
+function cfBarLine(id, entradas, saidas, dre, meses, curIdx) {
+  mkChart(id, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        { label:'Entradas', data:entradas, backgroundColor: meses.map((_,i)=> i<=curIdx ? '#1D9E75' : 'rgba(29,158,117,0.3)'), borderRadius:3, order:2 },
+        { label:'Saídas', data:saidas, backgroundColor: meses.map((_,i)=> i<=curIdx ? '#E24B4A' : 'rgba(226,75,74,0.3)'), borderRadius:3, order:2 },
+        { label:'Saldo', data:dre, type:'line', borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#C9A227', tension:0.35, fill:true, order:1 }
+      ]
+    },
+    options: {
+      responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => `€ ${Math.abs(Math.round(c.parsed.y)).toLocaleString('pt-BR')}` } } },
+      scales: {
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:10}, callback: v => `€${(v/1000).toFixed(0)}k`} }
+      }
+    }
+  });
+}
+
+function catDoughnut(id, labels, values, colors) {
+  mkChart(id, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data:values, backgroundColor:colors, borderWidth:2, borderColor:'white' }] },
+    options: {
+      responsive:true, cutout:'55%',
+      plugins: {
+        legend:{ position:'right', labels:{font:{size:10}, boxWidth:12, padding:8} },
+        tooltip:{ callbacks:{ label: c => `${c.label}: R$ ${c.parsed.toLocaleString('pt-BR')}` } }
+      }
+    }
+  });
+}
+
+function initDashCharts() {
+  scoreDonut('scoreChart');
+  catDoughnut('dashCatChart', CAT_DATA.labels, CAT_DATA.values, CAT_DATA.colors);
+  cfBarLine('miniCfChart', CF_DATA.entradas.slice(0,6), CF_DATA.saidas.slice(0,6), CF_DATA.dre.slice(0,6), CF_DATA.meses.slice(0,6), 5);
+}
+function initResumoCharts() {
+  cfBarLine('resumoCfChart', CF_DATA.entradas, CF_DATA.saidas, CF_DATA.dre, CF_DATA.meses, CF_DATA.curIdx);
+  catDoughnut('resumoCatChart', CAT_DATA.labels, CAT_DATA.values, CAT_DATA.colors);
+  mkChart('resumoEvolChart', {
+    type:'line',
+    data:{
+      labels:['2020','2021','2022','2023','2024','2025','2026p'],
+      datasets:[
+        { label:'Patrimônio (R$)', data:[180000,210000,260000,320000,520000,620000,748000], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#C9A227', tension:0.35, fill:true, yAxisID:'y' },
+        { label:'Saldo anual (R$)', data:[6893,3197,10297,1186,94653,-64522,18000], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:3, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false, yAxisID:'y2' }
+      ]
+    },
+    options:{ responsive:true, plugins:{ legend:{ labels:{font:{size:10},boxWidth:12} }, tooltip:{ callbacks:{ label: c => `R$ ${Math.round(c.parsed.y).toLocaleString('pt-BR')}` } } },
+      scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ position:'left', ticks:{font:{size:10}, callback:v=>`R$${(v/1000).toFixed(0)}k`} }, y2:{ position:'right', grid:{display:false}, ticks:{font:{size:10}, callback:v=>`${(v/1000).toFixed(0)}k`} } } }
+  });
+}
+function initCfCharts() {
+  cfBarLine('cfMainChart', CF_DATA.entradas, CF_DATA.saidas, CF_DATA.dre, CF_DATA.meses, CF_DATA.curIdx);
+  buildDRETable();
+}
+function initInvestCharts() {
+  mkChart('evolChart', {
+    type:'line',
+    data:{ labels:['2020','2021','2022','2023','2024','2025','2026p'],
+      datasets:[
+        { label:'Patrimônio (R$)', data:[180000,210000,260000,320000,520000,620000,748000], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#C9A227', tension:0.35, fill:true },
+        { label:'Saldo anual (R$)', data:[6893,3197,10297,1186,94653,-64522,18000], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:4, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false }
+      ] },
+    options:{ responsive:true, plugins:{ legend:{ labels:{font:{size:10},boxWidth:12} }, tooltip:{ callbacks:{ label: c => `R$ ${Math.round(c.parsed.y).toLocaleString('pt-BR')}` } } },
+      scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:10}, callback:v=>`R$${(v/1000).toFixed(0)}k`} } } }
+  });
+}
+function initEstratCharts() {
+  scoreDonut('estratScore');
+  calcAntecipar();
+  calcNova();
+}
+
+// ============================================================
+// DESPESAS CHART
+// ============================================================
+function initDespChart() {
+  catDoughnut('despCatChart', CAT_DATA.labels, CAT_DATA.values, CAT_DATA.colors);
+}
+
+// ============================================================
+// DRE TABLE
+// ============================================================
+const DRE_ROWS = [
+  { tipo:'=', desc:'Saldo Inicial', cls:'tr-saldo', vals:[3169,2610,7059,4057,3823,3444,3863,6062,5691,6119,6284,6249], tot:null, pct:null },
+  { tipo:'+', desc:'ENTRADAS', cls:'tr-in-total', vals:[5434,11396,5271,5836,5175,6494,7014,4507,4507,4507,4507,7364], tot:72014, pct:'100%' },
+  { tipo:'+', desc:'Salário Ayrton', cls:'tr-in', vals:[2967,2870,2871,2882,3040,2857,5714,2857,2857,2857,2857,5714], tot:40344, pct:'56%' },
+  { tipo:'+', desc:'Salário Camila', cls:'tr-in', vals:[0,1200,1200,1200,1200,1200,1200,1550,1550,1550,1550,1550], tot:14950, pct:'21%' },
+  { tipo:'+', desc:'Serviço / Freelance', cls:'tr-in', vals:[0,140,0,0,75,100,100,100,100,100,100,100], tot:915, pct:'1%' },
+  { tipo:'+', desc:'Bônus', cls:'tr-in', vals:[0,800,1200,0,430,0,0,0,0,0,0,0], tot:2430, pct:'3%' },
+  { tipo:'+', desc:'Outros', cls:'tr-in', vals:[467,536,0,1754,430,2337,0,0,0,0,0,0], tot:5524, pct:'8%' },
+  { tipo:'-', desc:'SAÍDAS', cls:'tr-out-total', vals:[5943,7420,8516,6662,5050,6075,4816,4878,4079,4343,4542,5173], tot:67496, pct:'94%' },
+  { tipo:'-', desc:'Imposto Ayrton', cls:'tr-out', vals:[930,847,829,892,890,830,1660,830,830,830,830,1660], tot:11858, pct:'17%' },
+  { tipo:'-', desc:'Imposto Camila', cls:'tr-out', vals:[0,120,303,122,127,127,127,350,350,350,350,350], tot:2676, pct:'4%' },
+  { tipo:'-', desc:'Fatura Cartão', cls:'tr-out', vals:[3165,1886,3156,3364,2877,2513,1730,1600,1600,1514,1514,1514], tot:26432, pct:'37%' },
+  { tipo:'-', desc:'Financiamentos', cls:'tr-out', vals:[724,725,1837,1189,12,1609,896,896,896,896,896,896], tot:11475, pct:'16%' },
+  { tipo:'-', desc:'Luz', cls:'tr-out', vals:[0,639,0,233,0,300,0,400,0,400,0,250], tot:2222, pct:'3%' },
+  { tipo:'-', desc:'Gás', cls:'tr-out', vals:[0,0,150,0,93,0,50,0,50,0,150,0], tot:493, pct:'1%' },
+  { tipo:'-', desc:'Condomínio', cls:'tr-out', vals:[0,575,0,0,449,0,0,449,0,0,449,0], tot:1922, pct:'3%' },
+  { tipo:'-', desc:'Internet', cls:'tr-out', vals:[34,34,34,34,34,34,34,34,34,34,34,34], tot:407, pct:'1%' },
+  { tipo:'-', desc:'Transporte', cls:'tr-out', vals:[40,40,362,242,202,272,40,40,40,40,40,40], tot:1396, pct:'2%' },
+  { tipo:'-', desc:'Outros débitos', cls:'tr-out', vals:[900,2122,1381,129,138,102,0,0,0,0,0,0], tot:4772, pct:'6%' },
+  { tipo:'=', desc:'DRE (resultado)', cls:'tr-dre', vals:[-509,3976,-3245,-826,125,419,2198,-370,428,164,-34,2191], tot:4518, pct:'6%' },
+  { tipo:'€', desc:'Caixa final', cls:'tr-caixa', vals:[2610,7059,4057,3823,3444,3863,6062,5691,6119,6284,6249,8441], tot:null, pct:null },
+  { tipo:'*', desc:'Cripto', cls:'tr-cripto', vals:[900,725,743,818,772,1100,1100,1100,1100,1100,1100,1100], tot:null, pct:null },
+];
+
+function buildDRETable() {
+  const tbody = document.getElementById('dre-body');
+  if (!tbody || tbody.children.length > 0) return;
+  const curIdx = CF_DATA.curIdx;
+  DRE_ROWS.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = r.cls;
+    let html = `<td><span class="tipo-b">${r.tipo}</span>${r.desc}</td>`;
+    r.vals.forEach((v, i) => {
+      const isCur = i === curIdx;
+      const isFut = i > curIdx;
+      let cls = isCur ? 'cell-cur' : '';
+      let style = isFut ? 'opacity:0.5;font-style:italic;' : '';
+      let display = v === null ? '—' : Math.abs(Math.round(v)).toLocaleString('pt-BR');
+      if (r.cls === 'tr-dre') {
+        cls += v >= 0 ? ' dre-pos' : ' dre-neg';
+        display = (v >= 0 ? '+' : '-') + ' ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+      } else if (r.tipo === '-') {
+        display = '- ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+      }
+      html += `<td class="${cls}" style="${style}">${display}</td>`;
+    });
+    html += `<td class="tot">${r.tot !== null ? r.tot.toLocaleString('pt-BR') : '—'}</td>`;
+    html += `<td style="color:#aaa;font-size:10px;">${r.pct !== null ? r.pct : ''}</td>`;
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  fetchRates();
+  setInterval(fetchRates, 5 * 60 * 1000); // refresh every 5 min
+  setInterval(updateTicker, 60 * 1000);
+  updateTicker();
+  initDashCharts();
+  initDespChart();
+  renderMetas();
+
+  // PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  // iOS install hint
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !isStandalone) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--navy);color:white;padding:12px 16px;font-size:12px;text-align:center;z-index:999;border-top:1px solid rgba(255,255,255,0.1);';
+    hint.innerHTML = '📲 Para instalar no iPhone: toque em <b>compartilhar</b> → <b>"Adicionar à Tela de Início"</b> <button onclick="this.parentElement.remove()" style="float:right;background:none;border:none;color:var(--gold);font-size:16px;cursor:pointer;">×</button>';
+    document.body.appendChild(hint);
+    setTimeout(() => hint.remove(), 8000);
+  }
+});
+</script>
+</body>
+</html>
