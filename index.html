@@ -142,7 +142,7 @@ function changePwd(user) {
 function resetData() {
   if (!confirm('⚠️ Isso vai apagar TODAS as despesas, entradas e metas salvas.\n\nTem certeza?')) return;
   if (!confirm('Confirmar reset completo? Essa ação não pode ser desfeita.')) return;
-  ['sc_despesas','sc_entradas','sc_metas','sc_hist','sc_investimentos','sc_fixas','sc_contas'].forEach(k => localStorage.removeItem(k));
+  ['sc_despesas','sc_entradas','sc_metas','sc_hist','sc_investimentos','sc_fixas','sc_contas','sc_financiamentos'].forEach(k => localStorage.removeItem(k));
   despesas = [];
   entradas = [];
   metas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
@@ -161,6 +161,9 @@ function resetData() {
   if(typeof updateCharts==='function') updateCharts();
   if(typeof renderAlerts==='function') renderAlerts();
   if(typeof updateSaudeFinanceira==='function') updateSaudeFinanceira();
+  if(typeof renderFinanciamentos==='function') renderFinanciamentos();
+  if(typeof renderEstratInsights==='function') renderEstratInsights();
+  if(typeof updateEvolChart==='function') updateEvolChart();
   closeSettings();
   alert('✅ Dados zerados. O app está limpo para começar de novo!');
 }
@@ -1561,7 +1564,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="port-header">
       <span style="font-size:18px;">🇧🇷</span>
       <span class="fw7 fs13">XP — CC 8019065</span>
-      <div class="port-total text-brl" id="inv-xp-total">R$ 148.400</div>
+      <div class="port-total text-brl" id="inv-xp-total">R$ 0</div>
     </div>
     <div class="port-row">
       <div class="port-dot" style="background:var(--eur-c);"></div>
@@ -1602,7 +1605,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="port-header">
       <span style="font-size:18px;">🇮🇹</span>
       <span class="fw7 fs13">MPS + Unicredit</span>
-      <div class="port-total text-eur" id="inv-caixa-total">€ 3.863</div>
+      <div class="port-total text-eur" id="inv-caixa-total">€ 0</div>
     </div>
     <div class="port-row">
       <div class="port-dot" style="background:var(--eur-c);"></div>
@@ -1637,7 +1640,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <div class="imovel-sub">Residencial · São Paulo</div>
       </div>
       <div>
-        <div class="imovel-val text-brl" id="inv-imovel-br-val">R$ 600.000</div>
+        <div class="imovel-val text-brl" id="inv-imovel-br-val">R$ —</div>
         <div class="imovel-renda text-success">Renda Variável: <span id="inv-renda-br-val">R$ 2.800</span>/mês</div>
       </div>
     </div>
@@ -1647,8 +1650,8 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <div class="imovel-sub">Residencial · Milano · financiado</div>
       </div>
       <div>
-        <div class="imovel-val text-eur" id="inv-imovel-it-val">€ 340.000</div>
-        <div class="imovel-renda text-danger">Mútuo: - € 713/mês</div>
+        <div class="imovel-val text-eur" id="inv-imovel-it-val">€ —</div>
+        <div class="imovel-renda text-danger" id="inv-mutuo-mes"></div>
       </div>
     </div>
   </div>
@@ -1720,71 +1723,16 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   </div>
 
   <div class="section-title">Insights &amp; recomendações</div>
-  <div class="alert-card warn">
-    <div class="alert-icon">⚠️</div>
-    <div class="alert-body">
-      <div class="alert-title">Comprometimento de renda acima do ideal</div>
-      <div class="alert-text">68% da renda comprometida (ideal: abaixo de 50%). Priorize quitar o prestito (taxa 8,4%) para liberar fôlego mensal.</div>
-    </div>
-  </div>
-  <div class="alert-card danger">
-    <div class="alert-icon">💰</div>
-    <div class="alert-body">
-      <div class="alert-title">Reserva de emergência insuficiente</div>
-      <div class="alert-text">Cobertura atual: 1,3 meses. Meta ideal: 6 meses (≈ € 18.000). Sugestão: € 300/mês em conta separada.</div>
-    </div>
-  </div>
-  <div class="alert-card success">
-    <div class="alert-icon">✅</div>
-    <div class="alert-body">
-      <div class="alert-title">Patrimônio em crescimento consistente</div>
-      <div class="alert-text">+R$ 94.653 em 2024. Imóvel BR e XP são âncoras sólidas. Manter aporte mensal é a estratégia correta.</div>
-    </div>
-  </div>
-  <div class="alert-card info">
-    <div class="alert-icon">📈</div>
-    <div class="alert-body">
-      <div class="alert-title">Itália sem alocação ativa — oportunidade</div>
-      <div class="alert-text">EURIBOR 2,4% — conta remunerada IT até 2,8% a.a. BTP curto prazo ~3,1%. Retomar na aba Operação.</div>
-    </div>
+  <div id="estrat-insights-wrap">
+    <div class="alert-card info"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Carregando insights...</div></div></div>
   </div>
 
-  <div class="section-title">Análise de financiamentos</div>
-  <div class="debt-wrap">
-    <table class="debt-table">
-      <thead>
-        <tr>
-          <th>Dívida</th><th>Taxa</th><th>Parcela</th><th>Saldo dev.</th><th>Quitação</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Mútuo imóvel (MPS)</td>
-          <td><span class="rate-badge rate-low">2,1% a.a.</span></td>
-          <td>€ 713/mês</td>
-          <td>≈ € 200k</td>
-          <td>~23 anos</td>
-        </tr>
-        <tr>
-          <td>Prestito pessoal</td>
-          <td><span class="rate-badge rate-high">8,4% a.a.</span></td>
-          <td>€ 240/mês</td>
-          <td>≈ € 8.400</td>
-          <td>~3 anos</td>
-        </tr>
-        <tr>
-          <td>Fatura cartão</td>
-          <td><span class="rate-badge rate-mid">0% (evitado)</span></td>
-          <td>€ 570/mês</td>
-          <td>—</td>
-          <td>Mensal</td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="debt-footer">
-      <span style="color:#555;">💡 Prioridade: quitar prestito (8,4%) antes de novo capital</span>
-      <span class="fw7 text-danger">- € 1.523/mês</span>
-    </div>
+  <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+    Análise de financiamentos
+    <button class="btn-secondary" onclick="openFinancModal(-1)" style="font-size:11px;">+ Adicionar</button>
+  </div>
+  <div id="financ-wrap">
+    <div class="alert-card info" style="margin-bottom:0;"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Nenhum financiamento cadastrado</div><div class="alert-text">Adicione seus financiamentos (mútuo, prestito, cartão) para análise.</div></div></div>
   </div>
 
   <div class="section-title">Metas financeiras
@@ -2177,6 +2125,51 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="modal-btns">
       <button class="btn-cancel" onclick="document.getElementById('modal-fixa').classList.remove('open')">Cancelar</button>
       <button class="btn-save-m" onclick="saveFixa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FINANCIAMENTO -->
+<div class="modal-overlay" id="modal-financ" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">💳 Financiamento / Dívida</div>
+      <button class="modal-close" onclick="document.getElementById('modal-financ').classList.remove('open')">×</button>
+    </div>
+    <input type="hidden" id="financ-idx" value="-1" />
+    <input type="hidden" id="financ-modal-moeda" value="eur" />
+    <div style="padding:0 0 12px;">
+      <div class="flabel" style="margin-top:8px;">Moeda</div>
+      <div class="pill-row">
+        <div class="pill p-eur active" id="financ-pill-eur" onclick="document.getElementById('financ-modal-moeda').value='eur';document.getElementById('financ-pill-eur').classList.add('active');document.getElementById('financ-pill-brl').classList.remove('active');">🇮🇹 EUR</div>
+        <div class="pill p-brl" id="financ-pill-brl" onclick="document.getElementById('financ-modal-moeda').value='brl';document.getElementById('financ-pill-brl').classList.add('active');document.getElementById('financ-pill-eur').classList.remove('active');">🇧🇷 BRL</div>
+      </div>
+      <div class="flabel" style="margin-top:12px;">Nome da dívida</div>
+      <input class="finput" type="text" id="financ-nome" placeholder="Ex: Mútuo MPS, Prestito, Fatura cartão..." />
+      <div class="form-grid" style="margin-top:10px;">
+        <div class="fg">
+          <div class="flabel">Parcela mensal</div>
+          <input class="finput" type="number" id="financ-parcela" placeholder="0,00" step="0.01" min="0" />
+        </div>
+        <div class="fg">
+          <div class="flabel">Taxa (% a.a.)</div>
+          <input class="finput" type="text" id="financ-taxa" placeholder="Ex: 2,1 ou 0 (evitado)" />
+        </div>
+      </div>
+      <div class="form-grid" style="margin-top:10px;">
+        <div class="fg">
+          <div class="flabel">Saldo devedor</div>
+          <input class="finput" type="text" id="financ-saldo" placeholder="Ex: 200000 ou —" />
+        </div>
+        <div class="fg">
+          <div class="flabel">Prazo / quitação</div>
+          <input class="finput" type="text" id="financ-prazo" placeholder="Ex: ~23 anos, Mensal" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal-financ').classList.remove('open')">Cancelar</button>
+      <button class="btn-save-m" onclick="saveFinanc()">Salvar</button>
     </div>
   </div>
 </div>
@@ -2652,6 +2645,8 @@ function saveEntrada() {
   updateCharts();
   renderAlerts();
   updateSaudeFinanceira();
+  renderFinanciamentos();
+  renderEstratInsights();
   document.getElementById('entr-valor').value = '';
   document.getElementById('entr-desc').value = '';
   toggleForm('entr-form');
@@ -2945,13 +2940,24 @@ function scoreDonut(id) {
 }
 
 function cfBarLine(id, entradas, saidas, dre, meses, curIdx) {
+  const ci = meses.map((_,i) => i<=curIdx ? '#1D9E75' : 'rgba(29,158,117,0.3)');
+  const co = meses.map((_,i) => i<=curIdx ? '#E24B4A' : 'rgba(226,75,74,0.3)');
+  if (charts[id]) {
+    const c = charts[id];
+    c.data.labels = meses;
+    c.data.datasets[0].data = entradas; c.data.datasets[0].backgroundColor = ci;
+    c.data.datasets[1].data = saidas;   c.data.datasets[1].backgroundColor = co;
+    c.data.datasets[2].data = dre;
+    c.update('none');
+    return;
+  }
   mkChart(id, {
     type: 'bar',
     data: {
       labels: meses,
       datasets: [
-        { label:'Entradas', data:entradas, backgroundColor: meses.map((_,i)=> i<=curIdx ? '#1D9E75' : 'rgba(29,158,117,0.3)'), borderRadius:3, order:2 },
-        { label:'Saídas', data:saidas, backgroundColor: meses.map((_,i)=> i<=curIdx ? '#E24B4A' : 'rgba(226,75,74,0.3)'), borderRadius:3, order:2 },
+        { label:'Entradas', data:entradas, backgroundColor:ci, borderRadius:3, order:2 },
+        { label:'Saídas',   data:saidas,   backgroundColor:co, borderRadius:3, order:2 },
         { label:'Saldo', data:dre, type:'line', borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#C9A227', tension:0.35, fill:true, order:1 }
       ]
     },
@@ -2966,6 +2972,11 @@ function cfBarLine(id, entradas, saidas, dre, meses, curIdx) {
 }
 
 function catDoughnut(id, labels, values, colors) {
+  if (charts[id]) {
+    charts[id].data.datasets[0].data = values;
+    charts[id].update('none');
+    return;
+  }
   mkChart(id, {
     type: 'doughnut',
     data: { labels, datasets: [{ data:values, backgroundColor:colors, borderWidth:2, borderColor:'white' }] },
@@ -2973,7 +2984,7 @@ function catDoughnut(id, labels, values, colors) {
       responsive:true, cutout:'55%',
       plugins: {
         legend:{ position:'right', labels:{font:{size:10}, boxWidth:12, padding:8} },
-        tooltip:{ callbacks:{ label: c => `${c.label}: R$ ${c.parsed.toLocaleString('pt-BR')}` } }
+        tooltip:{ callbacks:{ label: c => `${c.label}: € ${c.parsed.toLocaleString('pt-BR')}` } }
       }
     }
   });
@@ -2992,13 +3003,14 @@ function initResumoCharts() {
     data:{
       labels:['2020','2021','2022','2023','2024','2025','2026p'],
       datasets:[
-        { label:'Patrimônio (R$)', data:[180000,210000,260000,320000,520000,620000,748000], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#C9A227', tension:0.35, fill:true, yAxisID:'y' },
-        { label:'Saldo anual (R$)', data:[6893,3197,10297,1186,94653,-64522,18000], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:3, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false, yAxisID:'y2' }
+        { label:'Patrimônio (R$)', data:[], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#C9A227', tension:0.35, fill:true, yAxisID:'y' },
+        { label:'Saldo anual (R$)', data:[], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:3, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false, yAxisID:'y2' }
       ]
     },
     options:{ responsive:true, plugins:{ legend:{ labels:{font:{size:10},boxWidth:12} }, tooltip:{ callbacks:{ label: c => `R$ ${Math.round(c.parsed.y).toLocaleString('pt-BR')}` } } },
       scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ position:'left', ticks:{font:{size:10}, callback:v=>`R$${(v/1000).toFixed(0)}k`} }, y2:{ position:'right', grid:{display:false}, ticks:{font:{size:10}, callback:v=>`${(v/1000).toFixed(0)}k`} } } }
   });
+  updateEvolChart();
 }
 function initCfCharts() {
   cfBarLine('cfMainChart', CF_DATA.entradas, CF_DATA.saidas, CF_DATA.dre, CF_DATA.meses, CF_DATA.curIdx);
@@ -3009,7 +3021,7 @@ function initInvestCharts() {
     type:'line',
     data:{ labels:['2020','2021','2022','2023','2024','2025','2026p'],
       datasets:[
-        { label:'Patrimônio (R$)', data:[180000,210000,260000,320000,520000,620000,748000], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#C9A227', tension:0.35, fill:true },
+        { label:'Patrimônio (R$)', data:[], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#C9A227', tension:0.35, fill:true },
         { label:'Saldo anual (R$)', data:[6893,3197,10297,1186,94653,-64522,18000], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:4, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false }
       ] },
     options:{ responsive:true, plugins:{ legend:{ labels:{font:{size:10},boxWidth:12} }, tooltip:{ callbacks:{ label: c => `R$ ${Math.round(c.parsed.y).toLocaleString('pt-BR')}` } } },
@@ -3384,7 +3396,7 @@ async function handlePDFImport(file, type, statusEl, input) {
     DB.set('sc_hist', hist.slice(0, 200));
     renderDespList(); renderDespTable(); renderCatSummary(); renderHistorico();
     updateDashCards(); updateEntrCards(); updateResumoCards();
-    updateCharts(); renderAlerts(); updateSaudeFinanceira();
+    updateCharts(); renderAlerts(); updateSaudeFinanceira(); renderEstratInsights();
     statusEl.textContent = '✅ ' + imported + ' despesas importadas do extrato MPS PDF. (' + skipped + ' linhas ignoradas)';
     if (input) input.value = '';
   } catch(err) {
@@ -3846,21 +3858,36 @@ function renderInvestimentosValues() {
   set('inv-imovel-br-val', fB(imovelBR));
   set('inv-imovel-it-val', fE(imovelIT));
   set('inv-renda-br-val',  fB(rendaBr));
-  // Update XP portfolio bar percentages
+  // XP portfolio percentages
+  const xpIds  = ['inv-bar-rf','inv-bar-fundo','inv-bar-acoes','inv-bar-cripto'];
+  const xpPIds = ['inv-pct-rf','inv-pct-fundo','inv-pct-acoes','inv-pct-cripto'];
+  const xpVals = [xpRf, xpFundo, xpAcoes, xpCripto];
   if (xpTotal > 0) {
-    const bars = { 'inv-bar-rf': xpRf, 'inv-bar-fundo': xpFundo, 'inv-bar-acoes': xpAcoes, 'inv-bar-cripto': xpCripto };
-    const pcts = { 'inv-pct-rf': xpRf, 'inv-pct-fundo': xpFundo, 'inv-pct-acoes': xpAcoes, 'inv-pct-cripto': xpCripto };
-    Object.entries(bars).forEach(([id,v]) => { const e=document.getElementById(id); if(e) e.style.width=Math.round(v/xpTotal*100)+'%'; });
-    Object.entries(pcts).forEach(([id,v]) => { const e=document.getElementById(id); if(e) e.textContent=Math.round(v/xpTotal*100)+'%'; });
+    xpIds.forEach((id,i)  => { const e=document.getElementById(id); if(e) e.style.width=Math.round(xpVals[i]/xpTotal*100)+'%'; });
+    xpPIds.forEach((id,i) => { const e=document.getElementById(id); if(e) e.textContent=Math.round(xpVals[i]/xpTotal*100)+'%'; });
+  } else {
+    xpIds.forEach(id  => { const e=document.getElementById(id); if(e) e.style.width='0%'; });
+    xpPIds.forEach(id => { const e=document.getElementById(id); if(e) e.textContent='0%'; });
   }
+  // Caixa Italia percentages
   if (caixaIT > 0) {
     const eu=document.getElementById('inv-bar-unicredit'), em=document.getElementById('inv-bar-mps');
-    const pu=document.getElementById('inv-pct-unicredit'),pm=document.getElementById('inv-pct-mps');
+    const pu=document.getElementById('inv-pct-unicredit'), pm=document.getElementById('inv-pct-mps');
     if(eu) eu.style.width=Math.round(unicredit/caixaIT*100)+'%';
     if(em) em.style.width=Math.round(mps/caixaIT*100)+'%';
     if(pu) pu.textContent=Math.round(unicredit/caixaIT*100)+'%';
     if(pm) pm.textContent=Math.round(mps/caixaIT*100)+'%';
+  } else {
+    ['inv-bar-unicredit','inv-bar-mps'].forEach(id => { const e=document.getElementById(id); if(e) e.style.width='0%'; });
+    ['inv-pct-unicredit','inv-pct-mps'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent='0%'; });
   }
+  // Mútuo from sc_financiamentos
+  const financ = DB.get('sc_financiamentos',[]);
+  const mutuo = financ.find(f => /mutuo|mútuo|hipoteca/i.test(f.nome));
+  const mutuoEl = document.getElementById('inv-mutuo-mes');
+  if (mutuoEl) mutuoEl.textContent = mutuo ? `Mútuo: - € ${parseFloat(mutuo.parcela).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês` : '';
+  if (typeof updateEvolChart === 'function') updateEvolChart();
+  if (typeof renderEstratInsights === 'function') renderEstratInsights();
 }
 
 // ============================================================
@@ -4142,6 +4169,201 @@ function forceRefresh() {
   const curMes = document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7);
   updateDailyAnalysis(curMes);
   alert('✅ Dados atualizados!');
+}
+
+
+// ============================================================
+// FINANCIAMENTOS — editable debt analysis
+// ============================================================
+function openFinancModal(idx) {
+  const financ = DB.get('sc_financiamentos', []);
+  const f = idx >= 0 ? financ[idx] : null;
+  document.getElementById('financ-idx').value = idx;
+  document.getElementById('financ-nome').value    = f ? f.nome    : '';
+  document.getElementById('financ-parcela').value = f ? f.parcela : '';
+  document.getElementById('financ-taxa').value    = f ? f.taxa    : '';
+  document.getElementById('financ-saldo').value   = f ? f.saldo   : '';
+  document.getElementById('financ-prazo').value   = f ? f.prazo   : '';
+  const m = f ? (f.moeda || 'eur') : 'eur';
+  document.getElementById('financ-pill-eur').classList.toggle('active', m === 'eur');
+  document.getElementById('financ-pill-brl').classList.toggle('active', m === 'brl');
+  document.getElementById('financ-modal-moeda').value = m;
+  document.getElementById('modal-financ').classList.add('open');
+}
+function saveFinanc() {
+  const idx     = parseInt(document.getElementById('financ-idx').value);
+  const nome    = document.getElementById('financ-nome').value.trim();
+  const parcela = parseFloat(document.getElementById('financ-parcela').value) || 0;
+  const taxa    = document.getElementById('financ-taxa').value.trim();
+  const saldo   = document.getElementById('financ-saldo').value.trim();
+  const prazo   = document.getElementById('financ-prazo').value.trim();
+  const moeda   = document.getElementById('financ-modal-moeda').value || 'eur';
+  if (!nome || !parcela) { alert('Preencha nome e parcela.'); return; }
+  const financ = DB.get('sc_financiamentos', []);
+  const item = { nome, parcela, taxa, saldo, prazo, moeda };
+  if (idx >= 0) financ[idx] = item; else financ.push(item);
+  DB.set('sc_financiamentos', financ);
+  document.getElementById('modal-financ').classList.remove('open');
+  renderFinanciamentos();
+  renderInvestimentosValues();
+  renderEstratInsights();
+}
+function deleteFinanc(idx) {
+  if (!confirm('Excluir este financiamento?')) return;
+  const financ = DB.get('sc_financiamentos', []);
+  financ.splice(idx, 1);
+  DB.set('sc_financiamentos', financ);
+  renderFinanciamentos();
+  renderInvestimentosValues();
+  renderEstratInsights();
+}
+function renderFinanciamentos() {
+  const wrap = document.getElementById('financ-wrap');
+  if (!wrap) return;
+  const financ = DB.get('sc_financiamentos', []);
+  if (!financ.length) {
+    wrap.innerHTML = '<div class="alert-card info" style="margin-bottom:0;"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Nenhum financiamento cadastrado</div><div class="alert-text">Adicione seus financiamentos (mútuo, prestito, cartão) para análise.</div></div></div>';
+    return;
+  }
+  const sym = f => f.moeda === 'eur' ? '€' : 'R$';
+  const rateClass = t => {
+    const n = parseFloat(t);
+    if (!n || n === 0) return 'rate-mid';
+    if (n <= 3) return 'rate-low';
+    if (n <= 7) return 'rate-mid';
+    return 'rate-high';
+  };
+  const taxaLabel = t => {
+    const n = parseFloat(t);
+    if (!n || n === 0) return t || '—';
+    return t.replace('.',',') + '% a.a.';
+  };
+  const totalEur = financ.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.parcela,0);
+  const totalBrl = financ.filter(f=>f.moeda==='brl').reduce((s,f)=>s+f.parcela,0);
+  let totStr = '';
+  if (totalEur > 0) totStr += `- € ${totalEur.toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês`;
+  if (totalBrl > 0) totStr += (totStr ? '  ·  ' : '') + `- R$ ${totalBrl.toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês`;
+
+  // Find highest rate for priority tip
+  const highRate = financ.filter(f=>parseFloat(f.taxa)>0).sort((a,b)=>parseFloat(b.taxa)-parseFloat(a.taxa))[0];
+  const tip = highRate ? `💡 Prioridade: quitar "${highRate.nome}" (${taxaLabel(highRate.taxa)}) antes de novo capital` : '';
+
+  wrap.innerHTML = `<div class="debt-wrap">
+    <table class="debt-table">
+      <thead><tr><th>Dívida</th><th>Taxa</th><th>Parcela</th><th>Saldo dev.</th><th>Quitação</th><th></th></tr></thead>
+      <tbody>
+        ${financ.map((f,i) => `<tr>
+          <td>${f.nome}</td>
+          <td><span class="rate-badge ${rateClass(f.taxa)}">${taxaLabel(f.taxa)}</span></td>
+          <td>${sym(f)} ${parseFloat(f.parcela).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês</td>
+          <td>${f.saldo ? (isNaN(f.saldo) ? f.saldo : '≈ '+sym(f)+' '+parseFloat(f.saldo).toLocaleString('pt-BR')) : '—'}</td>
+          <td>${f.prazo || '—'}</td>
+          <td style="white-space:nowrap;">
+            <button onclick="openFinancModal(${i})" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Editar">✏️</button>
+            <button onclick="deleteFinanc(${i})" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Excluir">🗑</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="debt-footer">
+      <span style="color:#555;">${tip}</span>
+      <span class="fw7 text-danger">${totStr}</span>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// ESTRATÉGIA — dynamic insights
+// ============================================================
+function renderEstratInsights() {
+  const wrap = document.getElementById('estrat-insights-wrap');
+  if (!wrap) return;
+  const c       = DB.get('sc_contas', {});
+  const fixas   = DB.get('sc_fixas', []);
+  const financ  = DB.get('sc_financiamentos', []);
+  const inv     = DB.get('sc_investimentos', {});
+  const mes     = new Date().toISOString().slice(0, 7);
+  const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+  const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
+  const caixaIT = (c.unicredit||0) + (c.mps||0);
+  const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
+  const totParcelasEur = financ.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.parcela,0);
+  const totalComprometido = totFixasEur + totParcelasEur;
+  const hasData = entrMes > 0 || caixaIT > 0 || fixas.length > 0 || financ.length > 0;
+
+  if (!hasData) {
+    wrap.innerHTML = '<div class="alert-card info"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Configure seus dados para receber insights</div><div class="alert-text">Adicione entradas, despesas fixas e financiamentos para ver análises personalizadas.</div></div></div>';
+    return;
+  }
+
+  const insights = [];
+
+  // Income commitment
+  if (entrMes > 0 && totalComprometido > 0) {
+    const pct = Math.round(totalComprometido / entrMes * 100);
+    if (pct > 70)
+      insights.push({type:'danger', icon:'🔴', title:'Comprometimento de renda crítico', text:`${pct}% da renda comprometida com fixas e financiamentos. Revise o orçamento urgentemente.`});
+    else if (pct > 50)
+      insights.push({type:'warn', icon:'⚠️', title:'Comprometimento de renda elevado', text:`${pct}% da renda comprometida (ideal: abaixo de 50%). Avalie quitar dívidas com maior taxa primeiro.`});
+    else
+      insights.push({type:'success', icon:'✅', title:'Comprometimento de renda saudável', text:`${pct}% da renda comprometida com fixas. Bom controle!`});
+  }
+
+  // Emergency reserve
+  if (caixaIT > 0 && totFixasEur > 0) {
+    const months = (caixaIT / (totFixasEur + totParcelasEur)).toFixed(1);
+    const metaEur = 18000;
+    const pct = Math.round(caixaIT / metaEur * 100);
+    if (parseFloat(months) < 2)
+      insights.push({type:'danger', icon:'💰', title:'Reserva de emergência insuficiente', text:`Cobertura: ${months} meses. Meta: 6 meses. Considere separar €300/mês em reserva.`});
+    else if (parseFloat(months) < 4)
+      insights.push({type:'warn', icon:'⚠️', title:'Reserva de emergência abaixo do ideal', text:`Cobertura: ${months} meses (${pct}% da meta de €18.000). Reforce gradualmente.`});
+  }
+
+  // High rate debt priority
+  const highRate = financ.filter(f=>parseFloat(f.taxa)>3).sort((a,b)=>parseFloat(b.taxa)-parseFloat(a.taxa))[0];
+  if (highRate)
+    insights.push({type:'warn', icon:'📊', title:`Priorize quitar "${highRate.nome}"`, text:`Taxa de ${highRate.taxa.replace('.',',')}% a.a. Quitar antes de novos investimentos aumenta retorno líquido.`});
+
+  // Savings rate
+  if (entrMes > 0 && despMes > 0) {
+    const poupanca = Math.round((entrMes - despMes) / entrMes * 100);
+    if (poupanca >= 20)
+      insights.push({type:'success', icon:'✅', title:`Taxa de poupança saudável: ${poupanca}%`, text:'Continue poupando e direcionando a sobra para investimentos.'});
+    else if (poupanca < 0)
+      insights.push({type:'danger', icon:'🔴', title:'Despesas superam entradas este mês', text:`Déficit de € ${Math.abs(entrMes-despMes).toLocaleString('pt-BR',{minimumFractionDigits:2})}. Revise gastos variáveis.`});
+  }
+
+  // Italy allocation opportunity (always show if caixa > 1000)
+  if (caixaIT > 1000)
+    insights.push({type:'info', icon:'📈', title:'Itália — oportunidade de alocação', text:`EURIBOR ${fxRates.EURIBOR||'2,4'}% — conta remunerada IT até 2,8% a.a. BTP curto prazo ~3,1%. Ver aba Operação.`});
+
+  if (!insights.length)
+    insights.push({type:'success', icon:'✅', title:'Tudo em ordem!', text:'Suas finanças estão equilibradas. Continue monitorando.'});
+
+  wrap.innerHTML = insights.map(a =>
+    `<div class="alert-card ${a.type}"><div class="alert-icon">${a.icon}</div><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-text">${a.text}</div></div></div>`
+  ).join('');
+}
+
+// ============================================================
+// EVOLUÇÃO PATRIMONIAL — update from real data
+// ============================================================
+function updateEvolChart() {
+  const inv = DB.get('sc_investimentos', {});
+  const c   = DB.get('sc_contas', {});
+  const fx  = fxRates.EURBRL || 6.0;
+  const total = (inv.imovelBr||0) + (inv.xpRf||0) + (inv.xpFundo||0) + (inv.xpAcoes||0) + (inv.xpCripto||0)
+              + ((inv.imovelIt||0) * fx) + (((c.unicredit||0)+(c.mps||0)) * fx);
+  const yr = new Date().getFullYear().toString();
+  for (const id of ['evolChart', 'resumoEvolChart']) {
+    if (!charts[id]) continue;
+    const hasVal = total > 0;
+    charts[id].data.labels = hasVal ? [yr] : [];
+    charts[id].data.datasets[0].data = hasVal ? [Math.round(total)] : [];
+    charts[id].data.datasets[1].data = [];
+    charts[id].update('none');
+  }
 }
 
 // ============================================================
