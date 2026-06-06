@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <title>Saraiva &amp; Corazza — Finanças</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ===================== DESIGN SYSTEM ===================== */
@@ -850,6 +851,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <button class="ct-btn" onclick="setCountry('gl',this)">🌍</button>
       </div>
       <button class="settings-btn" onclick="openSettings()" title="Configurações">⚙️</button>
+      <span class="sync-badge off" id="sync-badge" title="Status da sincronização">⚡ offline</span>
     </div>
   </div>
   <div class="ticker-bar" id="ticker-bar">
@@ -2368,9 +2370,85 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 // ============================================================
 // DATA STORE (localStorage)
 // ============================================================
+// ====================================================
+// SUPABASE SYNC
+// ====================================================
+const _SB_URL = 'https://zsdaioixosnyzkxoeczr.supabase.co';
+const _SB_KEY = 'sb_publishable_Fzu0q6z71_skTk2UVAsmqw_7LeVL6bo';
+let _sbClient = null;
+let _syncChannel = null;
+
+function _getSB() {
+  if (!_sbClient && window.supabase) {
+    _sbClient = window.supabase.createClient(_SB_URL, _SB_KEY);
+  }
+  return _sbClient;
+}
+
+function _setSyncBadge(state, label) {
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
+  el.className = 'sync-badge ' + state;
+  el.textContent = label;
+}
+
 const DB = {
-  get: (k,def=[]) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
-  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+  get: (k, def=[]) => {
+    try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; }
+  },
+  set: (k, v) => {
+    localStorage.setItem(k, JSON.stringify(v));
+    // Only sync sc_* keys (not passwords or session data)
+    if (k.startsWith('sc_')) DB._push(k, v);
+  },
+  _push: (k, v) => {
+    const sb = _getSB();
+    if (!sb) return;
+    _setSyncBadge('sync', '🔄 sync...');
+    sb.from('sc_data')
+      .upsert({ key: k, value: v, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+      .then(({ error }) => {
+        if (error) { console.warn('Supabase push error:', error.message); _setSyncBadge('err', '❌ erro sync'); }
+        else { _setSyncBadge('ok', '✅ sincronizado'); setTimeout(() => _setSyncBadge('ok', '⚡ ao vivo'), 3000); }
+      });
+  },
+  loadFromCloud: async () => {
+    const sb = _getSB();
+    if (!sb) return false;
+    _setSyncBadge('sync', '🔄 carregando...');
+    const { data, error } = await sb.from('sc_data').select('key,value');
+    if (error || !data || !data.length) { _setSyncBadge('off', '⚡ offline'); return false; }
+    data.forEach(({ key, value }) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    });
+    _setSyncBadge('ok', '⚡ ao vivo');
+    return true;
+  },
+  subscribeRealtime: () => {
+    const sb = _getSB();
+    if (!sb) return;
+    if (_syncChannel) { sb.removeChannel(_syncChannel); }
+    _syncChannel = sb.channel('sc_data_watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sc_data' }, (payload) => {
+        const rec = payload.new;
+        if (!rec || !rec.key || !rec.key.startsWith('sc_')) return;
+        const prev = localStorage.getItem(rec.key);
+        const newVal = JSON.stringify(rec.value);
+        if (prev === newVal) return; // no change from us
+        localStorage.setItem(rec.key, newVal);
+        // Update in-memory vars
+        if (rec.key === 'sc_despesas') despesas = rec.value || [];
+        if (rec.key === 'sc_entradas') entradas = rec.value || [];
+        if (rec.key === 'sc_metas')    metas    = rec.value || [];
+        _setSyncBadge('ok', '🔄 atualizando...');
+        if (typeof forceRefresh === 'function') forceRefresh();
+        setTimeout(() => _setSyncBadge('ok', '⚡ ao vivo'), 1500);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') _setSyncBadge('ok', '⚡ ao vivo');
+        else if (status === 'CLOSED') _setSyncBadge('off', '⚡ offline');
+      });
+  },
 };
 
 let despesas = DB.get('sc_despesas');
@@ -4165,10 +4243,9 @@ function forceRefresh() {
   renderEntrList(); renderEntrTable(); renderMetas(); renderHistorico();
   renderFixas(); renderContasSaldos(); renderInvestimentosValues();
   updateDashCards(); updateEntrCards(); updateResumoCards();
-  updateCharts(); renderAlerts(); updateSaudeFinanceira();
+  updateCharts(); renderAlerts(); updateSaudeFinanceira(); renderFinanciamentos(); renderEstratInsights(); updateEvolChart();
   const curMes = document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7);
   updateDailyAnalysis(curMes);
-  alert('✅ Dados atualizados!');
 }
 
 
@@ -4369,11 +4446,23 @@ function updateEvolChart() {
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   fetchRates();
   setInterval(fetchRates, 5 * 60 * 1000);
   setInterval(updateTicker, 60 * 1000);
   updateTicker();
+
+  // Load from Supabase cloud first, re-render if data found
+  DB.loadFromCloud().then(cloudLoaded => {
+    if (cloudLoaded) {
+      despesas = DB.get('sc_despesas');
+      entradas = DB.get('sc_entradas');
+      metas    = DB.get('sc_metas', []);
+      if (typeof forceRefresh === 'function') forceRefresh();
+    }
+    DB.subscribeRealtime();
+  });
+
   initDashCharts();
   initDespChart();
   renderMetas();
