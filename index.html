@@ -148,8 +148,16 @@ function resetData() {
   metas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
   DB.set('sc_metas', metas);
   if(typeof renderDespList==='function') renderDespList();
+  if(typeof renderDespTable==='function') renderDespTable();
+  if(typeof renderCatSummary==='function') renderCatSummary();
   if(typeof renderEntrList==='function') renderEntrList();
+  if(typeof renderEntrTable==='function') renderEntrTable();
   if(typeof renderMetas==='function') renderMetas();
+  if(typeof renderContasSaldos==='function') renderContasSaldos();
+  if(typeof renderFixas==='function') renderFixas();
+  if(typeof updateDashCards==='function') updateDashCards();
+  if(typeof updateEntrCards==='function') updateEntrCards();
+  if(typeof updateResumoCards==='function') updateResumoCards();
   closeSettings();
   alert('✅ Dados zerados. O app está limpo para começar de novo!');
 }
@@ -255,7 +263,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(255,255,255,0.08);
   color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; line-height: 1;
 }
-.settings-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; max-height: calc(90vh - 64px); }
+.settings-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; min-height: 0; -webkit-overflow-scrolling: touch; }
 .settings-section { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
 .settings-section-title {
   font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase;
@@ -875,34 +883,34 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   <div class="cards-row">
     <div class="card-dark">
       <div class="card-label">Caixa total <span style="font-size:9px;opacity:0.5;">↗</span></div>
-      <div class="card-value text-eur" id="d-caixa-eur" onclick="showDrillDown('caixa')" style="cursor:pointer;">€ 3.863</div>
-      <div class="card-sub text-brl" id="d-caixa-brl">R$ 7.058</div>
+      <div class="card-value text-eur" id="d-caixa-eur" onclick="showDrillDown('caixa')" style="cursor:pointer;">€ —</div>
+      <div class="card-sub text-brl" id="d-caixa-brl">R$ —</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Entradas mês</div>
-      <div class="card-value text-gold" id="d-entradas">€ 4.324</div>
+      <div class="card-value text-gold" id="d-entradas">€ —</div>
       <div class="card-sub">Jun/2026</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Despesas mês</div>
-      <div class="card-value text-danger" id="d-despesas">€ 3.905</div>
+      <div class="card-value text-danger" id="d-despesas">€ —</div>
       <div class="card-sub">Jun/2026</div>
     </div>
   </div>
   <div class="cards-row">
     <div class="card-dark">
       <div class="card-label">Patrimônio</div>
-      <div class="card-value text-gold">R$ 748k</div>
-      <div class="card-sub">≈ € 121k</div>
+      <div class="card-value text-gold" id="d-patrim-brl">R$ —</div>
+      <div class="card-sub" id="d-patrim-eur">≈ € —</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Sobra mês</div>
-      <div class="card-value text-eur" id="d-sobra">+ € 419</div>
+      <div class="card-value text-eur" id="d-sobra">€ —</div>
       <div class="card-sub">DRE Jun/2026</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Acumulado 2026</div>
-      <div class="card-value text-gold">+ R$ 94k</div>
+      <div class="card-value text-gold" id="d-rendimento">+ R$ —</div>
       <div class="card-sub">Histórico 2024</div>
     </div>
   </div>
@@ -942,21 +950,21 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="alert-icon">⚠️</div>
     <div class="alert-body">
       <div class="alert-title">Mútuo vence em 3 dias</div>
-      <div class="alert-text">Mútuo MPS — € 713 — vence 01/Jul. Saldo atual suficiente.</div>
+      <div class="alert-text" id="dash-alert-mutuo">Verifique suas despesas fixas na aba Cashflow.</div>
     </div>
   </div>
   <div class="alert-card danger">
     <div class="alert-icon">🔴</div>
     <div class="alert-body">
       <div class="alert-title">Reserva de emergência baixa</div>
-      <div class="alert-text">Cobertura atual: 1,3 meses. Meta: 6 meses (€ 18.000).</div>
+      <div class="alert-text">Configure suas metas financeiras na aba Resumo.</div>
     </div>
   </div>
   <div class="alert-card success">
     <div class="alert-icon">✅</div>
     <div class="alert-body">
       <div class="alert-title">Meta XP no prazo</div>
-      <div class="alert-text">Aporte anual XP 50% atingido — R$ 9.000 de R$ 18.000.</div>
+      <div class="alert-text">Acompanhe seus aportes e metas na aba Resumo.</div>
     </div>
   </div>
 
@@ -975,32 +983,34 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <canvas id="miniCfChart" height="130"></canvas>
   </div>
 
-  <div class="section-title">Contas &amp; saldos</div>
-  <div class="card-white mb12">
+  <div class="section-title">Contas &amp; saldos
+    <button class="btn-secondary" onclick="openContasModal()">✏️ Editar saldos</button>
+  </div>
+  <div class="card-white mb12" id="contas-list">
     <div class="list-row">
       <div class="list-dot" style="background:var(--eur-c);"></div>
       <div class="list-info"><div class="list-desc">Unicredit (Buddy)</div><div class="list-sub">🇮🇹 Conta corrente</div></div>
-      <div class="list-val text-eur">€ 2.238</div>
+      <div class="list-val text-eur" id="conta-unicredit">€ 0</div>
     </div>
     <div class="list-row">
       <div class="list-dot" style="background:#378ADD;"></div>
       <div class="list-info"><div class="list-desc">MPS (Banca Monte dei Paschi)</div><div class="list-sub">🇮🇹 Conta corrente</div></div>
-      <div class="list-val text-eur">€ 1.625</div>
+      <div class="list-val text-eur" id="conta-mps">€ 0</div>
     </div>
     <div class="list-row">
       <div class="list-dot" style="background:var(--brl-c);"></div>
       <div class="list-info"><div class="list-desc">Itaú Personnalité</div><div class="list-sub">🇧🇷 CC 07900-0 · AG 3750</div></div>
-      <div class="list-val text-brl">R$ 4.230</div>
+      <div class="list-val text-brl" id="conta-itau">R$ 0</div>
     </div>
     <div class="list-row">
       <div class="list-dot" style="background:#C9A0FF;"></div>
       <div class="list-info"><div class="list-desc">XP Investimentos</div><div class="list-sub">🇧🇷 CC 8019065</div></div>
-      <div class="list-val text-brl">R$ 2.828</div>
+      <div class="list-val text-brl" id="conta-xp">R$ 0</div>
     </div>
     <div class="list-row">
       <div class="list-dot" style="background:#F07E7E;"></div>
       <div class="list-info"><div class="list-desc">Nubank</div><div class="list-sub">🇧🇷 CC 76127266-6</div></div>
-      <div class="list-val text-brl">R$ 0</div>
+      <div class="list-val text-brl" id="conta-nubank">R$ 0</div>
     </div>
   </div>
 </div>
@@ -1009,35 +1019,40 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 <div class="tab-content" id="tab-resumo">
   <div class="cards-row">
     <div class="card-dark">
-      <div class="card-label">Saldo Jun/26</div>
-      <div class="card-value text-eur">€ 3.863</div>
-      <div class="card-sub">Fechamento mês</div>
+      <div class="card-label">Caixa IT</div>
+      <div class="card-value text-eur" id="res-caixa-it">€ —</div>
+      <div class="card-sub">Unicredit + MPS</div>
     </div>
     <div class="card-dark">
-      <div class="card-label">DRE mês</div>
-      <div class="card-value text-eur">+ € 419</div>
-      <div class="card-sub">Resultado líquido</div>
+      <div class="card-label">Caixa BR</div>
+      <div class="card-value text-gold" id="res-caixa-br">R$ —</div>
+      <div class="card-sub">Itaú + XP + Nubank</div>
     </div>
     <div class="card-dark">
-      <div class="card-label">Projeção Dez</div>
-      <div class="card-value text-gold">€ 7.230</div>
-      <div class="card-sub">Se manter tendência</div>
+      <div class="card-label">Despesas fixas/mês</div>
+      <div class="card-value text-danger" id="res-fixas-total">€ —</div>
+      <div class="card-sub">Despesas recorrentes</div>
     </div>
   </div>
   <div class="cards-row">
     <div class="card-dark">
-      <div class="card-label">Total entradas</div>
-      <div class="card-value text-eur">€ 72.013</div>
-      <div class="card-sub">Acum. 2026</div>
+      <div class="card-label">Entradas mês</div>
+      <div class="card-value text-eur" id="res-entr-mes">€ —</div>
+      <div class="card-sub">Mês atual</div>
     </div>
     <div class="card-dark">
-      <div class="card-label">Total saídas</div>
-      <div class="card-value text-danger">€ 67.496</div>
-      <div class="card-sub">Acum. 2026</div>
+      <div class="card-label">Despesas mês</div>
+      <div class="card-value text-danger" id="res-desp-mes">€ —</div>
+      <div class="card-sub">Mês atual</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Saldo mês</div>
+      <div class="card-value text-gold" id="res-saldo-mes">€ —</div>
+      <div class="card-sub">Resultado líquido</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Acumulado</div>
-      <div class="card-value text-gold">+ € 4.517</div>
+      <div class="card-value text-gold" id="res-acumulado">€ —</div>
       <div class="card-sub">Saldo líquido 2026</div>
     </div>
   </div>
@@ -1286,52 +1301,32 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   <div class="cards-row">
     <div class="card-dark">
       <div class="card-label">Entradas mês</div>
-      <div class="card-value text-eur">€ 4.324</div>
-      <div class="card-sub">Jun/2026</div>
+      <div class="card-value text-eur" id="entr-card-total">€ —</div>
+      <div class="card-sub" id="entr-card-mes-label">Mês atual</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Salários</div>
-      <div class="card-value text-gold">€ 3.550</div>
+      <div class="card-value text-gold" id="entr-card-sal">€ —</div>
       <div class="card-sub">Camila + Ayrton</div>
     </div>
     <div class="card-dark">
-      <div class="card-label">Extras / Renda Var.</div>
-      <div class="card-value text-cam">€ 774</div>
+      <div class="card-label">Extras / Investimentos</div>
+      <div class="card-value text-cam" id="entr-card-extra">€ —</div>
       <div class="card-sub">Este mês</div>
     </div>
   </div>
 
-  <div class="section-title">Por pessoa — Jun/2026</div>
-  <div class="pessoa-grid">
+  <div class="section-title" id="entr-por-pessoa-title">Por pessoa — <span id="entr-pessoa-mes-label">mês atual</span></div>
+  <div class="pessoa-grid" id="entr-pessoa-grid">
     <div class="pessoa-card">
       <div class="pessoa-hdr">
         <div class="pessoa-avatar" style="background:var(--camila-bg);color:var(--camila);">CA</div>
         <div class="pessoa-name">Camila</div>
       </div>
-      <div class="pessoa-entry">
-        <div>
-          <div class="pessoa-entry-name">Salário</div>
-          <div class="list-badge badge-fix" style="margin-top:2px;">🔁 Fixo</div>
-        </div>
-        <div class="pessoa-entry-val text-eur">€ 1.500</div>
-      </div>
-      <div class="pessoa-entry">
-        <div>
-          <div class="pessoa-entry-name">Bônus DL</div>
-          <div class="list-badge badge-var" style="margin-top:2px;">⚡ Variável</div>
-        </div>
-        <div class="pessoa-entry-val text-eur">€ 324</div>
-      </div>
-      <div class="pessoa-entry">
-        <div>
-          <div class="pessoa-entry-name">Rendimento XP</div>
-          <div class="list-badge" style="background:var(--camila-bg);color:var(--camila);margin-top:2px;">Invest.</div>
-        </div>
-        <div class="pessoa-entry-val text-brl">R$ 450</div>
-      </div>
+      <div id="entr-pessoa-cam-items"></div>
       <div class="pessoa-total">
         <span class="fs11 text-muted">Total Camila</span>
-        <span class="fw7 text-cam" style="font-size:14px;">€ 1.824</span>
+        <span class="fw7 text-cam" style="font-size:14px;" id="entr-pessoa-cam-total">€ —</span>
       </div>
     </div>
     <div class="pessoa-card">
@@ -1339,30 +1334,10 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <div class="pessoa-avatar" style="background:var(--ayrton-bg);color:var(--ayrton);">AY</div>
         <div class="pessoa-name">Ayrton</div>
       </div>
-      <div class="pessoa-entry">
-        <div>
-          <div class="pessoa-entry-name">Salário</div>
-          <div class="list-badge badge-fix" style="margin-top:2px;">🔁 Fixo</div>
-        </div>
-        <div class="pessoa-entry-val text-eur">€ 2.050</div>
-      </div>
-      <div class="pessoa-entry">
-        <div>
-          <div class="pessoa-entry-name">Bônus</div>
-          <div class="list-badge badge-var" style="margin-top:2px;">⚡ Variável</div>
-        </div>
-        <div class="pessoa-entry-val text-eur">€ 450</div>
-      </div>
-      <div class="pessoa-entry">
-        <div>
-          <div class="pessoa-entry-name">Renda Variável</div>
-          <div class="list-badge" style="background:var(--camila-bg);color:var(--camila);margin-top:2px;">Invest.</div>
-        </div>
-        <div class="pessoa-entry-val text-brl">R$ 2.800</div>
-      </div>
+      <div id="entr-pessoa-ayr-items"></div>
       <div class="pessoa-total">
         <span class="fs11">Total Ayrton</span>
-        <span class="fw7 text-ayr" style="font-size:14px;">€ 2.500</span>
+        <span class="fw7 text-ayr" style="font-size:14px;" id="entr-pessoa-ayr-total">€ —</span>
       </div>
     </div>
   </div>
@@ -1539,57 +1514,22 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   </div>
 
   <div class="section-title">Alertas — próximos vencimentos</div>
-  <div class="alert-card danger">
-    <div class="alert-icon">⚠️</div>
-    <div class="alert-body">
-      <div class="alert-title">Mútuo (MPS) — dia 01/Jul</div>
-      <div class="alert-text">- € 713 · Saldo atual: € 3.863 — suficiente.</div>
-    </div>
-  </div>
-  <div class="alert-card warn">
-    <div class="alert-icon">📅</div>
-    <div class="alert-body">
-      <div class="alert-title">Fatura Unicredit Buddy — dia 05/Jul</div>
-      <div class="alert-text">- € 570 · Saldo após mútuo: € 3.150 — suficiente.</div>
-    </div>
-  </div>
-  <div class="alert-card warn">
-    <div class="alert-icon">📅</div>
-    <div class="alert-body">
-      <div class="alert-title">Prestito — dia 15/Jul</div>
-      <div class="alert-text">- € 240 · Aguarda entrada de salário no dia 15.</div>
+  <div id="cf-alertas-wrap">
+    <div class="alert-card info">
+      <div class="alert-icon">📅</div>
+      <div class="alert-body">
+        <div class="alert-title">Próximos vencimentos</div>
+        <div class="alert-text">Cadastre suas despesas fixas abaixo para ver alertas automáticos.</div>
+      </div>
     </div>
   </div>
 
-  <div class="section-title">Despesas fixas mensais</div>
-  <div class="fixas-card">
-    <div class="fixas-row">
-      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Mútuo (MPS) <span class="fixas-day">dia 1</span></div>
-      <div class="fixas-val">- € 713</div>
-    </div>
-    <div class="fixas-row">
-      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Fatura Unicredit <span class="fixas-day">dia 5</span></div>
-      <div class="fixas-val">- € 570</div>
-    </div>
-    <div class="fixas-row">
-      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Prestito <span class="fixas-day">dia 15</span></div>
-      <div class="fixas-val">- € 240</div>
-    </div>
-    <div class="fixas-row">
-      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Condomínio <span class="fixas-day">dia 10</span></div>
-      <div class="fixas-val">- € 150</div>
-    </div>
-    <div class="fixas-row">
-      <div class="fixas-info"><span class="list-badge badge-eur">EUR</span> Internet <span class="fixas-day">dia 1</span></div>
-      <div class="fixas-val">- € 34</div>
-    </div>
-    <div class="fixas-row">
-      <div class="fixas-info"><span class="list-badge badge-brl">BRL</span> Aporte XP <span class="fixas-day">dia 2</span></div>
-      <div class="fixas-val text-brl">- R$ 1.500</div>
-    </div>
-    <div class="fixas-total-row">
-      <span class="fs12" style="color:#888;">Total fixo/mês (EUR)</span>
-      <span class="fw7 text-danger" style="font-size:14px;">- € 1.707</span>
+  <div class="section-title">Despesas fixas mensais
+    <button class="btn-secondary" onclick="openFixaModal(-1)">+ Adicionar</button>
+  </div>
+  <div class="fixas-card" id="fixas-list">
+    <div style="text-align:center;color:#aaa;padding:16px;font-size:13px;" id="fixas-empty">
+      Nenhuma despesa fixa cadastrada. Clique em "+ Adicionar".
     </div>
   </div>
 </div>
@@ -1641,33 +1581,33 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="port-row">
       <div class="port-dot" style="background:var(--eur-c);"></div>
       <div class="port-name">Renda Fixa / CDB <span class="port-sub">SELIC+</span></div>
-      <div class="port-bar-wrap"><div class="port-bar" style="width:55%;background:var(--eur-c);"></div></div>
-      <div class="port-pct">55%</div>
-      <div class="port-val text-brl" id="inv-xp-rf-val">R$ 81.620</div>
+      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-rf" style="width:55%;background:var(--eur-c);"></div></div>
+      <div class="port-pct" id="inv-pct-rf">55%</div>
+      <div class="port-val text-brl" id="inv-xp-rf-val">R$ 0</div>
       <div class="port-rent" style="color:var(--success);">+13,4%</div>
     </div>
     <div class="port-row">
       <div class="port-dot" style="background:var(--info);"></div>
       <div class="port-name">Fundos multimercado</div>
-      <div class="port-bar-wrap"><div class="port-bar" style="width:25%;background:var(--info);"></div></div>
-      <div class="port-pct">25%</div>
-      <div class="port-val text-brl" id="inv-xp-fundo-val">R$ 37.100</div>
+      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-fundo" style="width:25%;background:var(--info);"></div></div>
+      <div class="port-pct" id="inv-pct-fundo">25%</div>
+      <div class="port-val text-brl" id="inv-xp-fundo-val">R$ 0</div>
       <div class="port-rent" style="color:var(--success);">+8,1%</div>
     </div>
     <div class="port-row">
       <div class="port-dot" style="background:var(--gold);"></div>
       <div class="port-name">Ações / FIIs</div>
-      <div class="port-bar-wrap"><div class="port-bar" style="width:12%;background:var(--gold);"></div></div>
-      <div class="port-pct">12%</div>
-      <div class="port-val text-brl" id="inv-xp-acoes-val">R$ 17.808</div>
+      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-acoes" style="width:12%;background:var(--gold);"></div></div>
+      <div class="port-pct" id="inv-pct-acoes">12%</div>
+      <div class="port-val text-brl" id="inv-xp-acoes-val">R$ 0</div>
       <div class="port-rent" style="color:var(--success);">+5,3%</div>
     </div>
     <div class="port-row">
       <div class="port-dot" style="background:var(--camila);"></div>
       <div class="port-name">Cripto <span class="port-sub">BTC/ETH</span></div>
-      <div class="port-bar-wrap"><div class="port-bar" style="width:8%;background:var(--camila);"></div></div>
-      <div class="port-pct">8%</div>
-      <div class="port-val text-brl" id="inv-xp-cripto-val">R$ 11.872</div>
+      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-cripto" style="width:8%;background:var(--camila);"></div></div>
+      <div class="port-pct" id="inv-pct-cripto">8%</div>
+      <div class="port-val text-brl" id="inv-xp-cripto-val">R$ 0</div>
       <div class="port-rent" style="color:var(--success);">+21%</div>
     </div>
   </div>
@@ -1682,17 +1622,17 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="port-row">
       <div class="port-dot" style="background:var(--eur-c);"></div>
       <div class="port-name">Unicredit (Buddy)</div>
-      <div class="port-bar-wrap"><div class="port-bar" style="width:58%;background:var(--eur-c);"></div></div>
-      <div class="port-pct">58%</div>
-      <div class="port-val text-eur" id="inv-unicredit-val">€ 2.238</div>
+      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-unicredit" style="width:58%;background:var(--eur-c);"></div></div>
+      <div class="port-pct" id="inv-pct-unicredit">58%</div>
+      <div class="port-val text-eur" id="inv-unicredit-val">€ 0</div>
       <div class="port-rent" style="color:#aaa;">0,0%</div>
     </div>
     <div class="port-row">
       <div class="port-dot" style="background:var(--info);"></div>
       <div class="port-name">MPS (Banca Monte dei Paschi)</div>
-      <div class="port-bar-wrap"><div class="port-bar" style="width:42%;background:var(--info);"></div></div>
-      <div class="port-pct">42%</div>
-      <div class="port-val text-eur" id="inv-mps-val">€ 1.625</div>
+      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-mps" style="width:42%;background:var(--info);"></div></div>
+      <div class="port-pct" id="inv-pct-mps">42%</div>
+      <div class="port-val text-eur" id="inv-mps-val">€ 0</div>
       <div class="port-rent" style="color:#aaa;">0,0%</div>
     </div>
     <div class="alert-card info" style="margin-top:10px;margin-bottom:0;">
@@ -2166,6 +2106,70 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   </div>
 </div>
 
+<!-- MODAL EDITAR CONTAS & SALDOS -->
+<div class="modal-overlay" id="modal-contas" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">💰 Editar saldos das contas</div>
+      <button class="modal-close" onclick="document.getElementById('modal-contas').classList.remove('open')">×</button>
+    </div>
+    <div style="padding:0 0 12px;">
+      <div class="flabel" style="margin-top:8px;">🇮🇹 Unicredit (Buddy) — €</div>
+      <input class="finput" type="number" id="cm-unicredit" placeholder="0,00" step="0.01" min="0" />
+      <div class="flabel" style="margin-top:10px;">🇮🇹 MPS (Banca Monte dei Paschi) — €</div>
+      <input class="finput" type="number" id="cm-mps" placeholder="0,00" step="0.01" min="0" />
+      <div class="flabel" style="margin-top:10px;">🇧🇷 Itaú Personnalité — R$</div>
+      <input class="finput" type="number" id="cm-itau" placeholder="0,00" step="0.01" min="0" />
+      <div class="flabel" style="margin-top:10px;">🇧🇷 XP Investimentos — R$</div>
+      <input class="finput" type="number" id="cm-xp" placeholder="0,00" step="0.01" min="0" />
+      <div class="flabel" style="margin-top:10px;">🇧🇷 Nubank — R$</div>
+      <input class="finput" type="number" id="cm-nubank" placeholder="0,00" step="0.01" min="0" />
+      <div class="alert-card info" style="margin-top:14px;margin-bottom:0;padding:10px 12px;">
+        <div class="alert-text" style="font-size:11px;">💡 Esses valores também atualizam automaticamente a aba Investimentos e a análise de saldo diário.</div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal-contas').classList.remove('open')">Cancelar</button>
+      <button class="btn-save-m" onclick="saveContas()">Salvar saldos</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESPESA FIXA -->
+<div class="modal-overlay" id="modal-fixa" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">📅 Despesa fixa mensal</div>
+      <button class="modal-close" onclick="document.getElementById('modal-fixa').classList.remove('open')">×</button>
+    </div>
+    <input type="hidden" id="fixa-idx" value="-1" />
+    <input type="hidden" id="fixa-modal-moeda" value="eur" />
+    <div style="padding:0 0 12px;">
+      <div class="flabel" style="margin-top:8px;">Moeda</div>
+      <div class="pill-row">
+        <div class="pill p-eur active" id="fixa-pill-eur" onclick="document.getElementById('fixa-modal-moeda').value='eur';document.getElementById('fixa-pill-eur').classList.add('active');document.getElementById('fixa-pill-brl').classList.remove('active');">🇮🇹 EUR</div>
+        <div class="pill p-brl" id="fixa-pill-brl" onclick="document.getElementById('fixa-modal-moeda').value='brl';document.getElementById('fixa-pill-brl').classList.add('active');document.getElementById('fixa-pill-eur').classList.remove('active');">🇧🇷 BRL</div>
+      </div>
+      <div class="flabel" style="margin-top:12px;">Nome da despesa</div>
+      <input class="finput" type="text" id="fixa-nome" placeholder="Ex: Mútuo MPS, Condomínio, Netflix..." />
+      <div class="form-grid" style="margin-top:10px;">
+        <div class="fg">
+          <div class="flabel">Valor</div>
+          <input class="finput" type="number" id="fixa-valor" placeholder="0,00" step="0.01" min="0" />
+        </div>
+        <div class="fg">
+          <div class="flabel">Dia do mês (venc.)</div>
+          <input class="finput" type="number" id="fixa-dia" placeholder="Ex: 1, 5, 15..." min="1" max="31" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal-fixa').classList.remove('open')">Cancelar</button>
+      <button class="btn-save-m" onclick="saveFixa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DRILL-DOWN DASHBOARD -->
 <div class="modal-overlay" id="modal-drill" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
@@ -2367,11 +2371,7 @@ const DB = {
 
 let despesas = DB.get('sc_despesas');
 let entradas = DB.get('sc_entradas');
-let metas = DB.get('sc_metas', [
-  {nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:3863,aporte:300,prazo:'dez/2027'},
-  {nome:'🚗 Carro novo (Itália)',moeda:'EUR',obj:15000,atual:0,aporte:0,prazo:'—'},
-  {nome:'💼 Aporte anual XP',moeda:'BRL',obj:18000,atual:9000,aporte:1500,prazo:'dez/2026'},
-]);
+let metas = DB.get('sc_metas', []);
 let currentCountry = 'it';
 let despCurrency = 'eur';
 let despTitular = 'cam';
@@ -2552,6 +2552,8 @@ function saveDespesa() {
   renderDespList();
   renderDespTable();
   renderCatSummary();
+  updateDashCards();
+  updateResumoCards();
   document.getElementById('desp-valor').value = '';
   document.getElementById('desp-desc').value = '';
   document.getElementById('desp-local').value = '';
@@ -2633,6 +2635,9 @@ function saveEntrada() {
   DB.set('sc_hist', histE.slice(0, 200));
   renderEntrList();
   renderEntrTable();
+  updateEntrCards();
+  updateDashCards();
+  updateResumoCards();
   document.getElementById('entr-valor').value = '';
   document.getElementById('entr-desc').value = '';
   toggleForm('entr-form');
@@ -2743,8 +2748,15 @@ function handleImport(input, type) {
   const file = input.files[0];
   if (!file) return;
   const statusEl = document.getElementById('import-status');
-  statusEl.textContent = 'Lendo arquivo...';
+  const ext = file.name.toLowerCase().split('.').pop();
 
+  if (ext === 'pdf') {
+    statusEl.textContent = 'Lendo extrato PDF...';
+    handlePDFImport(file, type, statusEl, input);
+    return;
+  }
+
+  statusEl.textContent = 'Lendo arquivo CSV...';
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
@@ -2883,17 +2895,17 @@ function autoCategorize(desc) {
 // ============================================================
 const CF_DATA = {
   meses: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
-  entradas: [5434,11396,5271,5836,5175,6494,7014,4507,4507,4507,4507,7364],
-  saidas:   [5943,7420,8516,6662,5050,6075,4816,4878,4079,4343,4542,5173],
-  saldoIni: [3169,2610,7059,4057,3823,3444,3863,6062,5691,6119,6284,6249],
-  curIdx: 5,
+  entradas: [0,0,0,0,0,0,0,0,0,0,0,0],
+  saidas:   [0,0,0,0,0,0,0,0,0,0,0,0],
+  saldoIni: [0,0,0,0,0,0,0,0,0,0,0,0],
+  curIdx: new Date().getMonth(),
 };
 CF_DATA.dre = CF_DATA.entradas.map((e,i) => e - CF_DATA.saidas[i]);
 CF_DATA.caixa = CF_DATA.saldoIni.map((s,i) => s + CF_DATA.dre[i]);
 
 const CAT_DATA = {
   labels: ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Outros'],
-  values: [2777,3285,335,310,448,966,1366,1103,1426],
+  values: [0,0,0,0,0,0,0,0,0],
   colors: ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#888'],
 };
 
@@ -3007,27 +3019,16 @@ function initDespChart() {
 // DRE TABLE
 // ============================================================
 const DRE_ROWS = [
-  { tipo:'=', desc:'Saldo Inicial', cls:'tr-saldo', vals:[3169,2610,7059,4057,3823,3444,3863,6062,5691,6119,6284,6249], tot:null, pct:null },
-  { tipo:'+', desc:'ENTRADAS', cls:'tr-in-total', vals:[5434,11396,5271,5836,5175,6494,7014,4507,4507,4507,4507,7364], tot:72014, pct:'100%' },
-  { tipo:'+', desc:'Salário Ayrton', cls:'tr-in', vals:[2967,2870,2871,2882,3040,2857,5714,2857,2857,2857,2857,5714], tot:40344, pct:'56%' },
-  { tipo:'+', desc:'Salário Camila', cls:'tr-in', vals:[0,1200,1200,1200,1200,1200,1200,1550,1550,1550,1550,1550], tot:14950, pct:'21%' },
-  { tipo:'+', desc:'Serviço / Freelance', cls:'tr-in', vals:[0,140,0,0,75,100,100,100,100,100,100,100], tot:915, pct:'1%' },
-  { tipo:'+', desc:'Bônus', cls:'tr-in', vals:[0,800,1200,0,430,0,0,0,0,0,0,0], tot:2430, pct:'3%' },
-  { tipo:'+', desc:'Outros', cls:'tr-in', vals:[467,536,0,1754,430,2337,0,0,0,0,0,0], tot:5524, pct:'8%' },
-  { tipo:'-', desc:'SAÍDAS', cls:'tr-out-total', vals:[5943,7420,8516,6662,5050,6075,4816,4878,4079,4343,4542,5173], tot:67496, pct:'94%' },
-  { tipo:'-', desc:'Imposto Ayrton', cls:'tr-out', vals:[930,847,829,892,890,830,1660,830,830,830,830,1660], tot:11858, pct:'17%' },
-  { tipo:'-', desc:'Imposto Camila', cls:'tr-out', vals:[0,120,303,122,127,127,127,350,350,350,350,350], tot:2676, pct:'4%' },
-  { tipo:'-', desc:'Fatura Cartão', cls:'tr-out', vals:[3165,1886,3156,3364,2877,2513,1730,1600,1600,1514,1514,1514], tot:26432, pct:'37%' },
-  { tipo:'-', desc:'Financiamentos', cls:'tr-out', vals:[724,725,1837,1189,12,1609,896,896,896,896,896,896], tot:11475, pct:'16%' },
-  { tipo:'-', desc:'Luz', cls:'tr-out', vals:[0,639,0,233,0,300,0,400,0,400,0,250], tot:2222, pct:'3%' },
-  { tipo:'-', desc:'Gás', cls:'tr-out', vals:[0,0,150,0,93,0,50,0,50,0,150,0], tot:493, pct:'1%' },
-  { tipo:'-', desc:'Condomínio', cls:'tr-out', vals:[0,575,0,0,449,0,0,449,0,0,449,0], tot:1922, pct:'3%' },
-  { tipo:'-', desc:'Internet', cls:'tr-out', vals:[34,34,34,34,34,34,34,34,34,34,34,34], tot:407, pct:'1%' },
-  { tipo:'-', desc:'Transporte', cls:'tr-out', vals:[40,40,362,242,202,272,40,40,40,40,40,40], tot:1396, pct:'2%' },
-  { tipo:'-', desc:'Outros débitos', cls:'tr-out', vals:[900,2122,1381,129,138,102,0,0,0,0,0,0], tot:4772, pct:'6%' },
-  { tipo:'=', desc:'DRE (resultado)', cls:'tr-dre', vals:[-509,3976,-3245,-826,125,419,2198,-370,428,164,-34,2191], tot:4518, pct:'6%' },
-  { tipo:'€', desc:'Caixa final', cls:'tr-caixa', vals:[2610,7059,4057,3823,3444,3863,6062,5691,6119,6284,6249,8441], tot:null, pct:null },
-  { tipo:'*', desc:'Cripto', cls:'tr-cripto', vals:[900,725,743,818,772,1100,1100,1100,1100,1100,1100,1100], tot:null, pct:null },
+  { tipo:'=', desc:'Saldo Inicial', cls:'tr-saldo', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:null, pct:null },
+  { tipo:'+', desc:'ENTRADAS', cls:'tr-in-total', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'100%' },
+  { tipo:'+', desc:'Salário', cls:'tr-in', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'+', desc:'Bônus / Extra', cls:'tr-in', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'+', desc:'Outros', cls:'tr-in', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'-', desc:'SAÍDAS', cls:'tr-out-total', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'-', desc:'Fixas', cls:'tr-out', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'-', desc:'Variáveis', cls:'tr-out', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'=', desc:'DRE (resultado)', cls:'tr-dre', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'€', desc:'Caixa final', cls:'tr-caixa', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:null, pct:null },
 ];
 
 function buildDRETable() {
@@ -3305,6 +3306,264 @@ function exportPDF() {
 }
 
 // ============================================================
+// PDF IMPORT — uses PDF.js for real text extraction
+// ============================================================
+function loadScript(src) {
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+}
+
+async function handlePDFImport(file, type, statusEl, input) {
+  try {
+    if (!window.pdfjsLib) {
+      statusEl.textContent = 'Carregando leitor PDF...';
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js');
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+    statusEl.textContent = 'Extraindo texto do PDF...';
+    const ab = await file.arrayBuffer();
+    const pdfDoc = await window.pdfjsLib.getDocument({data: new Uint8Array(ab)}).promise;
+    const lines = [];
+    for (let p = 1; p <= pdfDoc.numPages; p++) {
+      const page = await pdfDoc.getPage(p);
+      const tc = await page.getTextContent();
+      // Group text items by Y position (same line)
+      const byY = {};
+      tc.items.forEach(item => {
+        const y = Math.round(item.transform[5] * 10) / 10;
+        if (!byY[y]) byY[y] = [];
+        byY[y].push({x: item.transform[4], str: item.str});
+      });
+      Object.entries(byY).sort((a,b)=>parseFloat(b[0])-parseFloat(a[0])).forEach(([y,items]) => {
+        const lineStr = items.sort((a,b)=>a.x-b.x).map(i=>i.str).join(' ').trim();
+        if (lineStr) lines.push(lineStr);
+      });
+    }
+    statusEl.textContent = 'Categorizando lançamentos...';
+    const moeda = type === 'brl' ? 'brl' : 'eur';
+    const user  = sessionStorage.getItem('sc_nome') || '?';
+    let imported = 0, skipped = 0;
+    // MPS credit card pattern: DD/MM/YY Description Amount [OtherCur] [Rate]
+    for (const line of lines) {
+      const m = line.match(/^(\d{2}\/\d{2}\/\d{2})\s+(.+?)\s+([\d]{1,5}[,.][\d]{2})(?:\s|$)/);
+      if (!m) { skipped++; continue; }
+      const dateISO = parseDate(m[1]);
+      if (!dateISO) { skipped++; continue; }
+      const rawDesc = m[2].trim();
+      const valor = parseAmount(m[3]);
+      if (!valor || valor <= 0) { skipped++; continue; }
+      // Skip summary/total lines
+      if (/totale|saldo|debito|addebito|riepilogo/i.test(rawDesc)) { skipped++; continue; }
+      // Skip refunds (lines containing "- " before amount)
+      if (/ - \d/.test(line)) { skipped++; continue; }
+      // Clean description: remove trailing country code (single uppercase letter at end)
+      const desc = rawDesc.replace(/\s+[A-Z]$/, '').trim();
+      const categoria = autoCategorize(desc);
+      // All credit card statement entries are EXPENSES
+      despesas.push({ id: Date.now() + imported + Math.random(), data: dateISO, valor, moeda,
+        categoria, desc, local: '', titular: 'cam', tipo: 'var', conta: 'MPS (crédito)' });
+      imported++;
+    }
+    DB.set('sc_despesas', despesas);
+    const hist = DB.get('sc_hist', []);
+    hist.unshift({ ts: new Date().toISOString(), action: 'Upload PDF', desc: file.name,
+      valor: imported, moeda: '', user });
+    DB.set('sc_hist', hist.slice(0, 200));
+    renderDespList(); renderDespTable(); renderCatSummary(); renderHistorico();
+    updateDashCards(); updateEntrCards(); updateResumoCards();
+    statusEl.textContent = '✅ ' + imported + ' despesas importadas do extrato MPS PDF. (' + skipped + ' linhas ignoradas)';
+    if (input) input.value = '';
+  } catch(err) {
+    statusEl.textContent = '❌ Erro ao ler PDF: ' + err.message + '. Tente exportar como CSV no internet banking.';
+    console.error('PDF import error:', err);
+  }
+}
+
+// ============================================================
+// CONTAS & SALDOS — editable via localStorage
+// ============================================================
+function openContasModal() {
+  const c = DB.get('sc_contas', {});
+  const fields = { 'cm-unicredit': c.unicredit||0, 'cm-mps': c.mps||0,
+    'cm-itau': c.itau||0, 'cm-xp': c.xp||0, 'cm-nubank': c.nubank||0 };
+  Object.entries(fields).forEach(([id,v]) => { const e=document.getElementById(id); if(e) e.value=v; });
+  document.getElementById('modal-contas').classList.add('open');
+}
+function saveContas() {
+  const c = {
+    unicredit: parseFloat(document.getElementById('cm-unicredit').value)||0,
+    mps:       parseFloat(document.getElementById('cm-mps').value)||0,
+    itau:      parseFloat(document.getElementById('cm-itau').value)||0,
+    xp:        parseFloat(document.getElementById('cm-xp').value)||0,
+    nubank:    parseFloat(document.getElementById('cm-nubank').value)||0,
+  };
+  DB.set('sc_contas', c);
+  document.getElementById('modal-contas').classList.remove('open');
+  renderContasSaldos();
+  renderInvestimentosValues();
+  updateDashCards();
+  updateResumoCards();
+  updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || '2026-06');
+}
+function renderContasSaldos() {
+  const c = DB.get('sc_contas', {});
+  const fmtEur = v => '€ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const fmtBrl = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  set('conta-unicredit', fmtEur(c.unicredit||0));
+  set('conta-mps', fmtEur(c.mps||0));
+  set('conta-itau', fmtBrl(c.itau||0));
+  set('conta-xp', fmtBrl(c.xp||0));
+  set('conta-nubank', fmtBrl(c.nubank||0));
+}
+
+// ============================================================
+// DESPESAS FIXAS — editable via localStorage
+// ============================================================
+function openFixaModal(idx) {
+  const fixas = DB.get('sc_fixas', []);
+  const f = idx >= 0 ? fixas[idx] : null;
+  document.getElementById('fixa-idx').value = idx;
+  document.getElementById('fixa-nome').value = f ? f.nome : '';
+  document.getElementById('fixa-valor').value = f ? f.valor : '';
+  document.getElementById('fixa-dia').value = f ? f.dia : '';
+  // set moeda pills
+  const m = f ? f.moeda : 'eur';
+  document.getElementById('fixa-pill-eur').classList.toggle('active', m==='eur');
+  document.getElementById('fixa-pill-brl').classList.toggle('active', m==='brl');
+  document.getElementById('fixa-modal-moeda').value = m;
+  document.getElementById('modal-fixa').classList.add('open');
+}
+function saveFixa() {
+  const idx  = parseInt(document.getElementById('fixa-idx').value);
+  const nome = document.getElementById('fixa-nome').value.trim();
+  const valor= parseFloat(document.getElementById('fixa-valor').value)||0;
+  const dia  = parseInt(document.getElementById('fixa-dia').value)||1;
+  const moeda= document.getElementById('fixa-modal-moeda').value || 'eur';
+  if (!nome || !valor) { alert('Preencha nome e valor.'); return; }
+  const fixas = DB.get('sc_fixas', []);
+  const item = {nome, valor, dia, moeda};
+  if (idx >= 0) fixas[idx] = item; else fixas.push(item);
+  DB.set('sc_fixas', fixas);
+  document.getElementById('modal-fixa').classList.remove('open');
+  renderFixas();
+  updateResumoCards();
+  updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || '2026-06');
+}
+function deleteFixa(idx) {
+  if (!confirm('Excluir esta despesa fixa?')) return;
+  const fixas = DB.get('sc_fixas', []);
+  fixas.splice(idx, 1);
+  DB.set('sc_fixas', fixas);
+  renderFixas();
+  updateResumoCards();
+}
+function renderFixas() {
+  const list = document.getElementById('fixas-list');
+  const emptyEl = document.getElementById('fixas-empty');
+  if (!list) return;
+  const fixas = DB.get('sc_fixas', []).slice().sort((a,b)=>a.dia-b.dia);
+  list.querySelectorAll('.fixas-row').forEach(r=>r.remove());
+  const totalRow = list.querySelector('.fixas-total-row');
+  if (totalRow) totalRow.remove();
+  if (!fixas.length) { if(emptyEl) emptyEl.style.display='block'; return; }
+  if (emptyEl) emptyEl.style.display='none';
+  let totEur=0, totBrl=0;
+  fixas.forEach((f,i) => {
+    const sym = f.moeda==='eur'?'€':'R$';
+    const cls = f.moeda==='eur'?'badge-eur':'badge-brl';
+    const col = f.moeda==='eur'?'':'text-brl';
+    const div = document.createElement('div'); div.className='fixas-row';
+    div.innerHTML='<div class="fixas-info"><span class="list-badge '+cls+'">'+f.moeda.toUpperCase()+'</span> '+f.nome+' <span class="fixas-day">dia '+f.dia+'</span></div>'
+      +'<div style="display:flex;align-items:center;gap:8px;"><div class="fixas-val '+col+'">- '+sym+' '+f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'
+      +'<button onclick="openFixaModal('+i+')" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Editar">✏️</button>'
+      +'<button onclick="deleteFixa('+i+')" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Excluir">🗑</button></div>';
+    list.appendChild(div);
+    if(f.moeda==='eur') totEur+=f.valor; else totBrl+=f.valor;
+  });
+  const totDiv = document.createElement('div'); totDiv.className='fixas-total-row';
+  let totStr = totEur>0 ? '- € '+totEur.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '';
+  if(totBrl>0) totStr += (totStr?' · ':'')+'- R$ '+totBrl.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  totDiv.innerHTML='<span class="fs12" style="color:#888;">Total fixo/mês</span><span class="fw7 text-danger" style="font-size:14px;" id="fixas-total-val">'+totStr+'</span>';
+  list.appendChild(totDiv);
+}
+
+// ============================================================
+// DASHBOARD + RESUMO — dynamic summary cards
+// ============================================================
+function updateDashCards() {
+  const mes = new Date().toISOString().slice(0,7);
+  const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+  const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
+  const c = DB.get('sc_contas',{});
+  const caixaIT = (c.unicredit||0)+(c.mps||0);
+  const caixaBR = (c.itau||0)+(c.xp||0)+(c.nubank||0);
+  const inv = DB.get('sc_investimentos',{});
+  const xp = inv.xp||0, imovelBR=inv.imovelBr||0, imovelIT=inv.imovelIt||0;
+  const fx = fxRates.EURBRL||6.0;
+  const patrimBRL = imovelBR + xp + (imovelIT*fx) + (caixaIT*fx);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const fe=(v)=>v>0?'€ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —';
+  const fb=(v)=>v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'R$ —';
+  set('d-caixa-eur', fe(caixaIT));
+  set('d-caixa-brl', caixaBR>0?'R$ '+Math.round(caixaBR).toLocaleString('pt-BR'):'—');
+  set('d-entradas', fe(entrMes));
+  set('d-despesas', fe(despMes));
+  set('d-sobra', entrMes>0||despMes>0? (entrMes-despMes>=0?'+ ':'')+'€ '+(entrMes-despMes).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —');
+  set('d-patrim-brl', patrimBRL>0?'R$ '+Math.round(patrimBRL).toLocaleString('pt-BR'):'R$ —');
+  set('d-patrim-eur', patrimBRL>0?'≈ € '+Math.round(patrimBRL/fx).toLocaleString('pt-BR'):'≈ € —');
+}
+
+function updateEntrCards() {
+  const mes = new Date().toISOString().slice(0,7);
+  const thisMonth = entradas.filter(e=>e.data.startsWith(mes));
+  const totEur = thisMonth.filter(e=>e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+  const salEur = thisMonth.filter(e=>e.moeda==='eur'&&/salario|salário|Salário/i.test(e.tipo||e.desc||'')).reduce((s,e)=>s+e.valor,0);
+  const extraEur = totEur - salEur;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('entr-card-total', totEur>0?'€ '+totEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('entr-card-sal',   salEur>0?'€ '+salEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('entr-card-extra', extraEur>0?'€ '+extraEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  // Update pessoa cards
+  const camItems = document.getElementById('entr-pessoa-cam-items');
+  const ayrItems = document.getElementById('entr-pessoa-ayr-items');
+  const camTot   = document.getElementById('entr-pessoa-cam-total');
+  const ayrTot   = document.getElementById('entr-pessoa-ayr-total');
+  if (camItems) {
+    const cams = thisMonth.filter(e=>e.titular==='cam');
+    camItems.innerHTML = cams.length ? cams.map(e=>'<div class="pessoa-entry"><div class="pessoa-entry-name">'+(e.desc||e.tipo||'Entrada')+'</div><div class="pessoa-entry-val '+(e.moeda==='eur'?'text-eur':'text-brl')+'">'+(e.moeda==='eur'?'€':'R$')+' '+e.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>').join('') : '<div style="color:#aaa;font-size:12px;padding:8px;">Nenhuma entrada este mês.</div>';
+    if(camTot) { const t=cams.filter(e=>e.moeda==='eur').reduce((s,e)=>s+e.valor,0); camTot.textContent=t>0?'€ '+t.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —'; }
+  }
+  if (ayrItems) {
+    const ayrs = thisMonth.filter(e=>e.titular==='ayr');
+    ayrItems.innerHTML = ayrs.length ? ayrs.map(e=>'<div class="pessoa-entry"><div class="pessoa-entry-name">'+(e.desc||e.tipo||'Entrada')+'</div><div class="pessoa-entry-val '+(e.moeda==='eur'?'text-eur':'text-brl')+'">'+(e.moeda==='eur'?'€':'R$')+' '+e.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>').join('') : '<div style="color:#aaa;font-size:12px;padding:8px;">Nenhuma entrada este mês.</div>';
+    if(ayrTot) { const t=ayrs.filter(e=>e.moeda==='eur').reduce((s,e)=>s+e.valor,0); ayrTot.textContent=t>0?'€ '+t.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —'; }
+  }
+}
+
+function updateResumoCards() {
+  const mes = new Date().toISOString().slice(0,7);
+  const c = DB.get('sc_contas',{});
+  const fixas = DB.get('sc_fixas',[]);
+  const caixaIT = (c.unicredit||0)+(c.mps||0);
+  const caixaBR = (c.itau||0)+(c.xp||0)+(c.nubank||0);
+  const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
+  const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+  const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
+  const saldoMes = entrMes - despMes;
+  const totEntr = entradas.filter(e=>e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+  const totDesp = despesas.filter(d=>d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const fe=(v,pref='€')=>v>0?pref+' '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):pref+' —';
+  set('res-caixa-it', fe(caixaIT));
+  set('res-caixa-br', caixaBR>0?'R$ '+Math.round(caixaBR).toLocaleString('pt-BR'):'R$ —');
+  set('res-fixas-total', totFixasEur>0?'- € '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('res-entr-mes', fe(entrMes));
+  set('res-desp-mes', despMes>0?'- € '+despMes.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('res-saldo-mes', saldoMes!==0?(saldoMes>0?'+ ':'')+'€ '+saldoMes.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('res-acumulado', totEntr>0||totDesp>0?(totEntr-totDesp>=0?'+ ':'')+'€ '+(totEntr-totDesp).toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+}
+
+// ============================================================
 // FULL ENTRADAS TABLE
 // ============================================================
 function renderEntrTable() {
@@ -3528,34 +3787,61 @@ function saveInvestimentos() {
 
 function renderInvestimentosValues() {
   const inv = DB.get('sc_investimentos', {});
-  const fmt = (v,s) => s+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0});
-  const fx = fxRates.EURBRL || 6.18;
-  const xp       = inv.xp      ?? 148400;
-  const imovelBR = inv.imovelBr ?? 600000;
-  const imovelIT = inv.imovelIt ?? 340000;
-  const caixaIT  = (inv.unicredit??2238) + (inv.mps??1625);
-  const total = imovelBR + xp + (imovelIT * fx) + (caixaIT * fx);
+  const c   = DB.get('sc_contas', {});
+  const fx  = fxRates.EURBRL || 6.0;
+  // Use sc_contas for bank balances if available, else inv fallback, else 0
+  const unicredit = c.unicredit ?? inv.unicredit ?? 0;
+  const mps       = c.mps       ?? inv.mps       ?? 0;
+  const xp        = inv.xp      ?? 0;
+  const xpRf      = inv.xpRf    ?? 0;
+  const xpFundo   = inv.xpFundo ?? 0;
+  const xpAcoes   = inv.xpAcoes ?? 0;
+  const xpCripto  = inv.xpCripto?? 0;
+  const imovelBR  = inv.imovelBr?? 0;
+  const imovelIT  = inv.imovelIt?? 0;
+  const rendaBr   = inv.rendaBr ?? 0;
+  const caixaIT   = unicredit + mps;
+  const xpTotal   = xpRf + xpFundo + xpAcoes + xpCripto || xp;
+  const total = imovelBR + xpTotal + (imovelIT * fx) + (caixaIT * fx);
 
-  const setEl = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
-  setEl('inv-total-brl',   fmt(total, 'R$ '));
-  setEl('inv-total-eur',   '≈ € '+Math.round(total/fx).toLocaleString('pt-BR'));
-  setEl('inv-caixa-total', fmt(caixaIT, '€ '));
-  setEl('inv-unicredit-val', fmt(inv.unicredit??2238, '€ '));
-  setEl('inv-mps-val',       fmt(inv.mps??1625,       '€ '));
-  setEl('inv-xp-total',      fmt(xp, 'R$ '));
-  setEl('inv-xp-rf-val',     fmt(inv.xpRf??81620,    'R$ '));
-  setEl('inv-xp-fundo-val',  fmt(inv.xpFundo??37100, 'R$ '));
-  setEl('inv-xp-acoes-val',  fmt(inv.xpAcoes??17808, 'R$ '));
-  setEl('inv-xp-cripto-val', fmt(inv.xpCripto??11872,'R$ '));
-  setEl('inv-imovel-br-val', fmt(imovelBR, 'R$ '));
-  setEl('inv-imovel-it-val', fmt(imovelIT, '€ '));
-  setEl('inv-renda-br-val',  fmt(inv.rendaBr??2800,  'R$ '));
+  const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  const fE = (v) => '€ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const fB = (v) => 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  set('inv-total-brl',   total>0?fB(Math.round(total)):'R$ —');
+  set('inv-total-eur',   total>0?'≈ € '+Math.round(total/fx).toLocaleString('pt-BR'):'≈ € —');
+  set('inv-caixa-total', caixaIT>0?fE(caixaIT):'€ 0');
+  set('inv-unicredit-val', fE(unicredit));
+  set('inv-mps-val',       fE(mps));
+  set('inv-xp-total',      xpTotal>0?fB(xpTotal):'R$ 0');
+  set('inv-xp-rf-val',     fB(xpRf));
+  set('inv-xp-fundo-val',  fB(xpFundo));
+  set('inv-xp-acoes-val',  fB(xpAcoes));
+  set('inv-xp-cripto-val', fB(xpCripto));
+  set('inv-imovel-br-val', fB(imovelBR));
+  set('inv-imovel-it-val', fE(imovelIT));
+  set('inv-renda-br-val',  fB(rendaBr));
+  // Update XP portfolio bar percentages
+  if (xpTotal > 0) {
+    const bars = { 'inv-bar-rf': xpRf, 'inv-bar-fundo': xpFundo, 'inv-bar-acoes': xpAcoes, 'inv-bar-cripto': xpCripto };
+    const pcts = { 'inv-pct-rf': xpRf, 'inv-pct-fundo': xpFundo, 'inv-pct-acoes': xpAcoes, 'inv-pct-cripto': xpCripto };
+    Object.entries(bars).forEach(([id,v]) => { const e=document.getElementById(id); if(e) e.style.width=Math.round(v/xpTotal*100)+'%'; });
+    Object.entries(pcts).forEach(([id,v]) => { const e=document.getElementById(id); if(e) e.textContent=Math.round(v/xpTotal*100)+'%'; });
+  }
+  if (caixaIT > 0) {
+    const eu=document.getElementById('inv-bar-unicredit'), em=document.getElementById('inv-bar-mps');
+    const pu=document.getElementById('inv-pct-unicredit'),pm=document.getElementById('inv-pct-mps');
+    if(eu) eu.style.width=Math.round(unicredit/caixaIT*100)+'%';
+    if(em) em.style.width=Math.round(mps/caixaIT*100)+'%';
+    if(pu) pu.textContent=Math.round(unicredit/caixaIT*100)+'%';
+    if(pm) pm.textContent=Math.round(mps/caixaIT*100)+'%';
+  }
 }
 
 // ============================================================
 // ESTRATÉGIA — monthly daily analysis update
 // ============================================================
-const MONTHLY_ANALYSIS = {
+// (legacy placeholder — replaced by dynamic analysis below)
+const MONTHLY_ANALYSIS_LEGACY = {
   '2026-01': { saldoIni: 3169, rows: [
     {cls:'warn', date:'01/Jan', desc:'Mútuo MPS (- € 713) · saldo cai', amt:'€ 2.456'},
     {cls:'ok', date:'15/Jan', desc:'Salário Camila (+ € 1.200) · recupera', amt:'€ 2.610'},
@@ -3582,8 +3868,41 @@ const MONTHLY_ANALYSIS = {
 function updateDailyAnalysis(mes) {
   const wrap = document.getElementById('daily-analysis-wrap');
   if (!wrap) return;
-  const data = MONTHLY_ANALYSIS[mes] || MONTHLY_ANALYSIS['2026-06'];
-  const mesLabel = document.getElementById('estrat-month-sel')?.options[document.getElementById('estrat-month-sel')?.selectedIndex]?.text || mes;
+  const fixas = DB.get('sc_fixas', []);
+  const c = DB.get('sc_contas', {});
+  const saldoInicial = (c.unicredit||0) + (c.mps||0);
+  const MESES_PT = {
+    '01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
+    '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'
+  };
+  const [yr, mo] = mes.split('-');
+  const mesLabel = (MESES_PT[mo]||mo)+'/'+yr;
+  const fixasSorted = fixas.filter(f=>f.moeda==='eur').slice().sort((a,b)=>a.dia-b.dia);
+
+  if (!fixasSorted.length && saldoInicial === 0) {
+    wrap.innerHTML = '<div class="alert-card info" style="margin-bottom:0;"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Configuração necessária</div><div class="alert-text">Adicione suas despesas fixas (aba Cashflow) e atualize os saldos das contas (aba Resumo) para ver a análise dinâmica.</div></div></div>';
+    return;
+  }
+
+  let saldo = saldoInicial;
+  let saldoMin = saldo, diaCrit = '—';
+  const events = [];
+  fixasSorted.forEach(f => {
+    saldo -= f.valor;
+    const cls = saldo < 500 ? 'crit' : saldo < 1500 ? 'warn' : 'ok';
+    if (saldo < saldoMin) { saldoMin = saldo; diaCrit = f.dia+'/'+mesLabel.slice(0,3); }
+    events.push({cls, date: String(f.dia).padStart(2,'0')+'/'+mesLabel.slice(0,3),
+      desc: f.nome+' (- € '+f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+')',
+      amt: '€ '+saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})});
+  });
+
+  const data = {
+    saldoIni: saldoInicial,
+    rows: events,
+    min: '€ '+saldoMin.toLocaleString('pt-BR',{minimumFractionDigits:2}),
+    crit: diaCrit,
+    risco: saldoMin < 0 ? '⚠️ Sim' : 'Não'
+  };
   wrap.innerHTML = '<div class="card-white mb12" style="padding:12px;">'
     + '<div class="flex-between mb8"><div style="display:flex;align-items:center;gap:6px;">'
     + '<div style="width:10px;height:10px;border-radius:50%;background:var(--warn);"></div>'
@@ -3614,7 +3933,12 @@ document.addEventListener('DOMContentLoaded', () => {
   renderEntrList();
   renderEntrTable();
   renderHistorico();
+  renderFixas();
+  renderContasSaldos();
   renderInvestimentosValues();
+  updateDashCards();
+  updateEntrCards();
+  updateResumoCards();
   updateDailyAnalysis('2026-06');
   // init relatórios default dates
   const today = new Date().toISOString().split('T')[0];
