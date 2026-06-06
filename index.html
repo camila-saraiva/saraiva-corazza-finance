@@ -1598,7 +1598,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="imovel-row">
       <div>
         <div class="imovel-name">🇧🇷 Imóvel Brasil</div>
-        <div class="imovel-sub">Residencial · São Paulo</div>
+        <div class="imovel-sub" id="inv-imovel-br-sub">Residencial · Brasil</div>
       </div>
       <div>
         <div class="imovel-val text-brl" id="inv-imovel-br-val">R$ —</div>
@@ -1608,7 +1608,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="imovel-row">
       <div>
         <div class="imovel-name">🇮🇹 Imóvel Itália</div>
-        <div class="imovel-sub">Residencial · Milano · financiado</div>
+        <div class="imovel-sub" id="inv-imovel-it-sub">Residencial · Itália</div>
       </div>
       <div>
         <div class="imovel-val text-eur" id="inv-imovel-it-val">€ —</div>
@@ -2278,8 +2278,36 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <input class="finput" type="number" id="inv-xp-cripto" placeholder="0" step="100" min="0" />
       <div class="flabel" style="margin-top:10px;">🇧🇷 Imóvel Brasil — R$</div>
       <input class="finput" type="number" id="inv-imovel-br" placeholder="0" step="1000" min="0" />
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="flex:1;">
+          <div class="flabel">Data de compra (BR)</div>
+          <input class="finput" type="month" id="inv-imovel-br-data" />
+        </div>
+        <div style="flex:1;">
+          <div class="flabel">Titular (BR)</div>
+          <select class="finput" id="inv-imovel-br-titular">
+            <option value="ambos">👥 Ambos</option>
+            <option value="camila">👩‍💼 Camila</option>
+            <option value="ayrton">👨‍💼 Ayrton</option>
+          </select>
+        </div>
+      </div>
       <div class="flabel" style="margin-top:10px;">🇮🇹 Imóvel Itália — €</div>
       <input class="finput" type="number" id="inv-imovel-it" placeholder="0" step="1000" min="0" />
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="flex:1;">
+          <div class="flabel">Data de compra (IT)</div>
+          <input class="finput" type="month" id="inv-imovel-it-data" />
+        </div>
+        <div style="flex:1;">
+          <div class="flabel">Titular (IT)</div>
+          <select class="finput" id="inv-imovel-it-titular">
+            <option value="ambos">👥 Ambos</option>
+            <option value="camila">👩‍💼 Camila</option>
+            <option value="ayrton">👨‍💼 Ayrton</option>
+          </select>
+        </div>
+      </div>
       <div class="flabel" style="margin-top:10px;">🇧🇷 Renda mensal imóvel BR — R$</div>
       <input class="finput" type="number" id="inv-renda-br" placeholder="0" step="50" min="0" />
     </div>
@@ -2473,7 +2501,7 @@ function showTab(tabId, navEl, bnEl) {
     historico: renderHistorico,
     relatorios: buildRelPreview,
   };
-  if (inits[tabId]) setTimeout(inits[tabId], 50);
+  if (inits[tabId]) setTimeout(() => { inits[tabId](); updateCharts(); }, 50);
 }
 
 // ============================================================
@@ -2498,6 +2526,12 @@ function setCountry(c, el) {
   });
   // refilter expense table
   if (typeof renderDespTable === 'function') renderDespTable();
+  // refresh charts and all currency-dependent views
+  updateCharts();
+  if (typeof renderContasSaldos === 'function') renderContasSaldos();
+  if (typeof renderInvestimentosValues === 'function') renderInvestimentosValues();
+  if (typeof renderResumoCards === 'function') renderResumoCards();
+  if (typeof updateSaudeFinanceira === 'function') updateSaudeFinanceira();
 }
 
 // ============================================================
@@ -3975,8 +4009,15 @@ function openInvModal() {
     'inv-imovel-br': inv.imovelBr  ?? 0,
     'inv-imovel-it': inv.imovelIt  ?? 0,
     'inv-renda-br':  inv.rendaBr   ?? 0,
+    'inv-imovel-br-data':     inv.imovelBrData    ?? '',
+    'inv-imovel-it-data':     inv.imovelItData    ?? '',
   };
   Object.entries(fields).forEach(([id,v]) => { const el=document.getElementById(id); if(el) el.value=v; });
+  // selects need separate handling
+  const brTit = document.getElementById('inv-imovel-br-titular');
+  if (brTit) brTit.value = inv.imovelBrTitular ?? 'ambos';
+  const itTit = document.getElementById('inv-imovel-it-titular');
+  if (itTit) itTit.value = inv.imovelItTitular ?? 'ambos';
   document.getElementById('modal-inv').classList.add('open');
 }
 
@@ -3987,9 +4028,13 @@ function saveInvestimentos() {
     xpFundo:   parseFloat(document.getElementById('inv-xp-fundo').value)||0,
     xpAcoes:   parseFloat(document.getElementById('inv-xp-acoes').value)||0,
     xpCripto:  parseFloat(document.getElementById('inv-xp-cripto').value)||0,
-    imovelBr:  parseFloat(document.getElementById('inv-imovel-br').value)||0,
-    imovelIt:  parseFloat(document.getElementById('inv-imovel-it').value)||0,
-    rendaBr:   parseFloat(document.getElementById('inv-renda-br').value)||0,
+    imovelBr:        parseFloat(document.getElementById('inv-imovel-br').value)||0,
+    imovelIt:        parseFloat(document.getElementById('inv-imovel-it').value)||0,
+    rendaBr:         parseFloat(document.getElementById('inv-renda-br').value)||0,
+    imovelBrData:    document.getElementById('inv-imovel-br-data')?.value    ?? '',
+    imovelItData:    document.getElementById('inv-imovel-it-data')?.value    ?? '',
+    imovelBrTitular: document.getElementById('inv-imovel-br-titular')?.value ?? 'ambos',
+    imovelItTitular: document.getElementById('inv-imovel-it-titular')?.value ?? 'ambos',
   };
   DB.set('sc_investimentos', inv);
   document.getElementById('modal-inv').classList.remove('open');
@@ -4026,6 +4071,22 @@ function renderInvestimentosValues() {
   set('inv-imovel-br-val',fB(imovelBR));
   set('inv-imovel-it-val',fE(imovelIT));
   set('inv-renda-br-val', fB(rendaBr));
+  // Update imóvel subtitles with purchase date + titular
+  const titMap = { ambos:'👥 Ambos', camila:'👩‍💼 Camila', ayrton:'👨‍💼 Ayrton' };
+  const brSub = document.getElementById('inv-imovel-br-sub');
+  if (brSub) {
+    const parts = ['Residencial · Brasil'];
+    if (inv.imovelBrData) parts.push('Compra: ' + inv.imovelBrData.replace('-', '/'));
+    if (inv.imovelBrTitular) parts.push(titMap[inv.imovelBrTitular] || inv.imovelBrTitular);
+    brSub.textContent = parts.join(' · ');
+  }
+  const itSub = document.getElementById('inv-imovel-it-sub');
+  if (itSub) {
+    const parts = ['Residencial · Itália'];
+    if (inv.imovelItData) parts.push('Compra: ' + inv.imovelItData.replace('-', '/'));
+    if (inv.imovelItTitular) parts.push(titMap[inv.imovelItTitular] || inv.imovelItTitular);
+    itSub.textContent = parts.join(' · ');
+  }
   // XP portfolio percentages
   const xpIds  = ['inv-bar-rf','inv-bar-fundo','inv-bar-acoes','inv-bar-cripto'];
   const xpPIds = ['inv-pct-rf','inv-pct-fundo','inv-pct-acoes','inv-pct-cripto'];
@@ -4153,13 +4214,15 @@ function updateDailyAnalysis(mes) {
 // CHARTS — update from real data
 // ============================================================
 function updateCharts() {
+  // Determine active moeda from country flag
+  const cfMoeda = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
   // Category data from real despesas
   const CAT_ORDER = ['alimentacao','mercado','assinaturas','auto','compras','saude','transporte','viagem','outros'];
   const CAT_LABELS_LIST = ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Outros'];
   const CAT_COLORS_LIST = ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#888'];
   const catSums = {};
   CAT_ORDER.forEach(c => { catSums[c] = 0; });
-  despesas.filter(d => d.moeda === 'eur').forEach(d => {
+  despesas.filter(d => d.moeda === cfMoeda).forEach(d => {
     const cat = d.categoria || 'outros';
     catSums[cat] = (catSums[cat] || 0) + d.valor;
   });
@@ -4180,8 +4243,8 @@ function updateCharts() {
   const MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const mKeys = Array.from({length:12}, (_, i) => `${yr}-${String(i+1).padStart(2,'0')}`);
   const curIdx = now.getMonth();
-  const entrByMo = mKeys.map(m => entradas.filter(e => e.data && e.data.startsWith(m) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0));
-  const despByMo = mKeys.map(m => despesas.filter(d => d.data && d.data.startsWith(m) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0));
+  const entrByMo = mKeys.map(m => entradas.filter(e => e.data && e.data.startsWith(m) && e.moeda === cfMoeda).reduce((s, e) => s + e.valor, 0));
+  const despByMo = mKeys.map(m => despesas.filter(d => d.data && d.data.startsWith(m) && d.moeda === cfMoeda).reduce((s, d) => s + d.valor, 0));
   const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
 
   cfBarLine('miniCfChart', entrByMo.slice(0,6), despByMo.slice(0,6), dreByMo.slice(0,6), MESES_SHORT.slice(0,6), Math.min(curIdx, 5));
