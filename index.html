@@ -974,35 +974,9 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   </div>
 
   <div class="section-title">Contas &amp; saldos
-    <button class="btn-secondary" onclick="openContasModal()">✏️ Editar saldos</button>
+    <button class="btn-secondary" onclick="openContaModal(-1)">+ Adicionar</button>
   </div>
-  <div class="card-white mb12" id="contas-list">
-    <div class="list-row">
-      <div class="list-dot" style="background:var(--eur-c);"></div>
-      <div class="list-info"><div class="list-desc">Unicredit (Buddy)</div><div class="list-sub">🇮🇹 Conta corrente</div></div>
-      <div class="list-val text-eur" id="conta-unicredit">€ 0</div>
-    </div>
-    <div class="list-row">
-      <div class="list-dot" style="background:#378ADD;"></div>
-      <div class="list-info"><div class="list-desc">MPS (Banca Monte dei Paschi)</div><div class="list-sub">🇮🇹 Conta corrente</div></div>
-      <div class="list-val text-eur" id="conta-mps">€ 0</div>
-    </div>
-    <div class="list-row">
-      <div class="list-dot" style="background:var(--brl-c);"></div>
-      <div class="list-info"><div class="list-desc">Itaú Personnalité</div><div class="list-sub">🇧🇷 CC 07900-0 · AG 3750</div></div>
-      <div class="list-val text-brl" id="conta-itau">R$ 0</div>
-    </div>
-    <div class="list-row">
-      <div class="list-dot" style="background:#C9A0FF;"></div>
-      <div class="list-info"><div class="list-desc">XP Investimentos</div><div class="list-sub">🇧🇷 CC 8019065</div></div>
-      <div class="list-val text-brl" id="conta-xp">R$ 0</div>
-    </div>
-    <div class="list-row">
-      <div class="list-dot" style="background:#F07E7E;"></div>
-      <div class="list-info"><div class="list-desc">Nubank</div><div class="list-sub">🇧🇷 CC 76127266-6</div></div>
-      <div class="list-val text-brl" id="conta-nubank">R$ 0</div>
-    </div>
-  </div>
+  <div class="card-white mb12" id="contas-list"></div>
 </div>
 
 <!-- ==================== RESUMO ==================== -->
@@ -1602,29 +1576,14 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
   </div>
 
-  <div class="section-title">🇮🇹 Caixa Itália</div>
+  <div class="section-title">🇮🇹 Caixa Itália — contas EUR</div>
   <div class="port-card">
     <div class="port-header">
       <span style="font-size:18px;">🇮🇹</span>
-      <span class="fw7 fs13">MPS + Unicredit</span>
+      <span class="fw7 fs13">Contas em Euro</span>
       <div class="port-total text-eur" id="inv-caixa-total">€ 0</div>
     </div>
-    <div class="port-row">
-      <div class="port-dot" style="background:var(--eur-c);"></div>
-      <div class="port-name">Unicredit (Buddy)</div>
-      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-unicredit" style="width:58%;background:var(--eur-c);"></div></div>
-      <div class="port-pct" id="inv-pct-unicredit">58%</div>
-      <div class="port-val text-eur" id="inv-unicredit-val">€ 0</div>
-      <div class="port-rent" style="color:#aaa;">0,0%</div>
-    </div>
-    <div class="port-row">
-      <div class="port-dot" style="background:var(--info);"></div>
-      <div class="port-name">MPS (Banca Monte dei Paschi)</div>
-      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-mps" style="width:42%;background:var(--info);"></div></div>
-      <div class="port-pct" id="inv-pct-mps">42%</div>
-      <div class="port-val text-eur" id="inv-mps-val">€ 0</div>
-      <div class="port-rent" style="color:#aaa;">0,0%</div>
-    </div>
+    <div id="inv-caixa-rows"></div>
     <div class="alert-card info" style="margin-top:10px;margin-bottom:0;">
       <div class="alert-icon">💡</div>
       <div class="alert-body">
@@ -1782,8 +1741,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div style="margin-bottom:10px;">
         <div class="flabel mb8">Qual dívida antecipar?</div>
         <select class="finput" id="sim-divida" onchange="calcAntecipar()">
-          <option value="8400,0.7,240">Prestito pessoal (8,4% a.a.) · € 240/mês</option>
-          <option value="200000,0.175,713">Mútuo MPS (2,1% a.a.) · € 713/mês</option>
+          <option value="">-- adicione financiamentos na seção acima --</option>
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -2058,30 +2016,47 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 </div>
 
 <!-- MODAL EDITAR CONTAS & SALDOS -->
-<div class="modal-overlay" id="modal-contas" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal-overlay" id="modal-conta" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:380px;">
     <div class="modal-header">
-      <div class="modal-title">💰 Editar saldos das contas</div>
-      <button class="modal-close" onclick="document.getElementById('modal-contas').classList.remove('open')">×</button>
+      <div class="modal-title" id="modal-conta-title">💰 Nova conta</div>
+      <button class="modal-close" onclick="document.getElementById('modal-conta').classList.remove('open')">×</button>
     </div>
+    <input type="hidden" id="conta-idx" value="-1" />
+    <input type="hidden" id="conta-modal-moeda" value="eur" />
+    <input type="hidden" id="conta-modal-cor" value="#1D9E75" />
     <div style="padding:0 0 12px;">
-      <div class="flabel" style="margin-top:8px;">🇮🇹 Unicredit (Buddy) — €</div>
-      <input class="finput" type="number" id="cm-unicredit" placeholder="0,00" step="0.01" min="0" />
-      <div class="flabel" style="margin-top:10px;">🇮🇹 MPS (Banca Monte dei Paschi) — €</div>
-      <input class="finput" type="number" id="cm-mps" placeholder="0,00" step="0.01" min="0" />
-      <div class="flabel" style="margin-top:10px;">🇧🇷 Itaú Personnalité — R$</div>
-      <input class="finput" type="number" id="cm-itau" placeholder="0,00" step="0.01" min="0" />
-      <div class="flabel" style="margin-top:10px;">🇧🇷 XP Investimentos — R$</div>
-      <input class="finput" type="number" id="cm-xp" placeholder="0,00" step="0.01" min="0" />
-      <div class="flabel" style="margin-top:10px;">🇧🇷 Nubank — R$</div>
-      <input class="finput" type="number" id="cm-nubank" placeholder="0,00" step="0.01" min="0" />
-      <div class="alert-card info" style="margin-top:14px;margin-bottom:0;padding:10px 12px;">
-        <div class="alert-text" style="font-size:11px;">💡 Esses valores também atualizam automaticamente a aba Investimentos e a análise de saldo diário.</div>
+      <div class="flabel" style="margin-top:8px;">Moeda</div>
+      <div class="pill-row">
+        <div class="pill p-eur active" id="conta-pill-eur" onclick="document.getElementById('conta-modal-moeda').value='eur';document.getElementById('conta-pill-eur').classList.add('active');document.getElementById('conta-pill-brl').classList.remove('active');">🇮🇹 EUR</div>
+        <div class="pill p-brl" id="conta-pill-brl" onclick="document.getElementById('conta-modal-moeda').value='brl';document.getElementById('conta-pill-brl').classList.add('active');document.getElementById('conta-pill-eur').classList.remove('active');">🇧🇷 BRL</div>
+      </div>
+      <div class="flabel" style="margin-top:12px;">Titular</div>
+      <div class="pill-row">
+        <div class="pill active" id="conta-tit-ambos" onclick="setContaTitular('ambos')">👥 Ambos</div>
+        <div class="pill" id="conta-tit-camila" onclick="setContaTitular('camila')">👩‍💼 Camila</div>
+        <div class="pill" id="conta-tit-ayrton" onclick="setContaTitular('ayrton')">👨‍💼 Ayrton</div>
+      </div>
+      <input type="hidden" id="conta-modal-titular" value="ambos" />
+      <div class="flabel" style="margin-top:12px;">Nome da conta / banco</div>
+      <input class="finput" type="text" id="conta-nome" placeholder="Ex: Unicredit, Nubank, XP..." />
+      <div class="form-grid" style="margin-top:10px;">
+        <div class="fg">
+          <div class="flabel">Saldo atual</div>
+          <input class="finput" type="number" id="conta-saldo" placeholder="0,00" step="0.01" min="0" />
+        </div>
+        <div class="fg">
+          <div class="flabel">Saldo válido em</div>
+          <input class="finput" type="date" id="conta-data-ref" />
+        </div>
+      </div>
+      <div class="alert-card info" style="margin-top:12px;margin-bottom:0;padding:10px 12px;">
+        <div class="alert-text" style="font-size:11px;">💡 O caixa exibido será calculado automaticamente: <b>saldo + entradas − despesas</b> desde a data informada.</div>
       </div>
     </div>
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="document.getElementById('modal-contas').classList.remove('open')">Cancelar</button>
-      <button class="btn-save-m" onclick="saveContas()">Salvar saldos</button>
+      <button class="btn-cancel" onclick="document.getElementById('modal-conta').classList.remove('open')">Cancelar</button>
+      <button class="btn-save-m" onclick="saveContaItem()">Salvar</button>
     </div>
   </div>
 </div>
@@ -2161,12 +2136,16 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="form-grid" style="margin-top:10px;">
         <div class="fg">
           <div class="flabel">Saldo devedor</div>
-          <input class="finput" type="text" id="financ-saldo" placeholder="Ex: 200000 ou —" />
+          <input class="finput" type="number" id="financ-saldo" placeholder="Ex: 200000" step="100" min="0" />
         </div>
         <div class="fg">
-          <div class="flabel">Prazo / quitação</div>
-          <input class="finput" type="text" id="financ-prazo" placeholder="Ex: ~23 anos, Mensal" />
+          <div class="flabel">Prazo (meses)</div>
+          <input class="finput" type="number" id="financ-prazo" placeholder="Ex: 36, 240..." min="1" />
         </div>
+      </div>
+      <div class="fg" style="margin-top:10px;">
+        <div class="flabel">Data de início do financiamento</div>
+        <input class="finput" type="month" id="financ-data-inicio" />
       </div>
     </div>
     <div class="modal-btns">
@@ -2286,11 +2265,8 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <button class="modal-close" onclick="document.getElementById('modal-inv').classList.remove('open')">×</button>
     </div>
     <div style="padding:0 0 12px;">
-      <div class="flabel" style="margin-top:8px;">🇮🇹 Unicredit (Buddy) — €</div>
-      <input class="finput" type="number" id="inv-unicredit" placeholder="0" step="10" min="0" />
-      <div class="flabel" style="margin-top:10px;">🇮🇹 MPS (Banca Monte dei Paschi) — €</div>
-      <input class="finput" type="number" id="inv-mps" placeholder="0" step="10" min="0" />
-      <div class="flabel" style="margin-top:10px;">🇧🇷 XP Investimentos — R$</div>
+      <div class="alert-card info" style="margin-bottom:10px;padding:8px 12px;"><div class="alert-text" style="font-size:11px;">💡 Saldos bancários (Unicredit, MPS, etc.) são gerenciados na aba <b>Resumo → Contas & saldos</b>.</div></div>
+      <div class="flabel" style="margin-top:8px;">🇧🇷 XP Investimentos — R$</div>
       <input class="finput" type="number" id="inv-xp" placeholder="0" step="100" min="0" />
       <div class="flabel" style="margin-top:10px;">🇧🇷 Renda Fixa / CDB (dentro XP) — R$</div>
       <input class="finput" type="number" id="inv-xp-rf" placeholder="0" step="100" min="0" />
@@ -2801,20 +2777,31 @@ function setSimTab(tab, el) {
 }
 
 function calcAntecipar() {
-  const sel = document.getElementById('sim-divida').value.split(',');
-  const saldo0 = parseFloat(sel[0]);
-  const taxaMes = parseFloat(sel[1]) / 100;
-  const parcOrig = parseFloat(sel[2]);
-  const extra = parseInt(document.getElementById('slid-ant').value);
-  document.getElementById('slid-ant-val').textContent = '€ ' + extra;
+  const selEl = document.getElementById('sim-divida');
+  const slid = document.getElementById('slid-ant');
+  const valEl = document.getElementById('slid-ant-val');
+  if (!selEl || !slid) return;
+  const parts = (selEl.value || '').split(',');
+  const saldo0   = parseFloat(parts[0]) || 0;
+  const taxaMes  = parseFloat(parts[1]) || 0; // already decimal (e.g. 0.007)
+  const parcOrig = parseFloat(parts[2]) || 0;
+  if (!saldo0 || !parcOrig) {
+    ['r-meses','r-econ','r-libera'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent='—'; });
+    return;
+  }
+  const extra = parseInt(slid.value) || 0;
+  if (valEl) valEl.textContent = '€ ' + extra;
   const parcela = parcOrig + extra;
   let m = 0, tot = saldo0, j = 0;
   while (tot > 0.01 && m < 600) { const ji = tot * taxaMes; j += ji; tot = tot + ji - parcela; m++; }
   let mb = 0, totb = saldo0, jb = 0;
   while (totb > 0.01 && mb < 600) { const ji = totb * taxaMes; jb += ji; totb = totb + ji - parcOrig; mb++; }
-  document.getElementById('r-meses').textContent = m + ' meses';
-  document.getElementById('r-econ').textContent = '€ ' + Math.max(0, Math.round(jb - j)).toLocaleString('pt-BR');
-  document.getElementById('r-libera').textContent = '€ ' + parcela.toLocaleString('pt-BR');
+  const rMeses = document.getElementById('r-meses');
+  const rEcon  = document.getElementById('r-econ');
+  const rLib   = document.getElementById('r-libera');
+  if (rMeses) rMeses.textContent = m > 0 ? m + ' meses' : '—';
+  if (rEcon)  rEcon.textContent  = '€ ' + Math.max(0, Math.round(jb - j)).toLocaleString('pt-BR');
+  if (rLib)   rLib.textContent   = '€ ' + parcela.toLocaleString('pt-BR');
 }
 
 function calcNova() {
@@ -3100,7 +3087,7 @@ function initInvestCharts() {
     data:{ labels:['2020','2021','2022','2023','2024','2025','2026p'],
       datasets:[
         { label:'Patrimônio (R$)', data:[], borderColor:'#C9A227', backgroundColor:'rgba(201,162,39,0.08)', borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#C9A227', tension:0.35, fill:true },
-        { label:'Saldo anual (R$)', data:[6893,3197,10297,1186,94653,-64522,18000], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:4, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false }
+        { label:'Saldo anual (R$)', data:[], borderColor:'#5DCAA5', borderWidth:1.5, pointRadius:4, pointBackgroundColor:'#5DCAA5', tension:0.35, fill:false }
       ] },
     options:{ responsive:true, plugins:{ legend:{ labels:{font:{size:10},boxWidth:12} }, tooltip:{ callbacks:{ label: c => `R$ ${Math.round(c.parsed.y).toLocaleString('pt-BR')}` } } },
       scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:10}, callback:v=>`R$${(v/1000).toFixed(0)}k`} } } }
@@ -3108,6 +3095,7 @@ function initInvestCharts() {
 }
 function initEstratCharts() {
   scoreDonut('estratScore');
+  refreshSimuladorOptions();
   calcAntecipar();
   calcNova();
 }
@@ -3486,39 +3474,140 @@ async function handlePDFImport(file, type, statusEl, input) {
 // ============================================================
 // CONTAS & SALDOS — editable via localStorage
 // ============================================================
-function openContasModal() {
-  const c = DB.get('sc_contas', {});
-  const fields = { 'cm-unicredit': c.unicredit||0, 'cm-mps': c.mps||0,
-    'cm-itau': c.itau||0, 'cm-xp': c.xp||0, 'cm-nubank': c.nubank||0 };
-  Object.entries(fields).forEach(([id,v]) => { const e=document.getElementById(id); if(e) e.value=v; });
-  document.getElementById('modal-contas').classList.add('open');
+// CONTAS HELPERS
+// ============================================================
+const CONTA_CORES = ['#1D9E75','#378ADD','#C9A227','#C9A0FF','#F07E7E','#7EC8F0','#F0A830','#A0D080','#D07090','#90A0D0'];
+
+function getContasArr() {
+  const raw = DB.get('sc_contas', null);
+  if (Array.isArray(raw)) return raw;
+  // Migrate old object format → array
+  if (raw && typeof raw === 'object') {
+    const arr = [];
+    if (raw.unicredit !== undefined) arr.push({id:'c1', nome:'Unicredit (Buddy)', moeda:'eur', titular:'ambos', saldo:raw.unicredit||0, dataRef:'', cor:'#1D9E75'});
+    if (raw.mps !== undefined)       arr.push({id:'c2', nome:'MPS (Banca Monte dei Paschi)', moeda:'eur', titular:'ambos', saldo:raw.mps||0, dataRef:'', cor:'#378ADD'});
+    if (raw.itau !== undefined)      arr.push({id:'c3', nome:'Itaú Personnalité', moeda:'brl', titular:'camila', saldo:raw.itau||0, dataRef:'', cor:'#C9A227'});
+    if (raw.xp !== undefined)        arr.push({id:'c4', nome:'XP Investimentos', moeda:'brl', titular:'camila', saldo:raw.xp||0, dataRef:'', cor:'#C9A0FF'});
+    if (raw.nubank !== undefined)    arr.push({id:'c5', nome:'Nubank', moeda:'brl', titular:'camila', saldo:raw.nubank||0, dataRef:'', cor:'#F07E7E'});
+    if (arr.length) DB.set('sc_contas', arr);
+    return arr;
+  }
+  return [];
 }
-function saveContas() {
-  const c = {
-    unicredit: parseFloat(document.getElementById('cm-unicredit').value)||0,
-    mps:       parseFloat(document.getElementById('cm-mps').value)||0,
-    itau:      parseFloat(document.getElementById('cm-itau').value)||0,
-    xp:        parseFloat(document.getElementById('cm-xp').value)||0,
-    nubank:    parseFloat(document.getElementById('cm-nubank').value)||0,
-  };
-  DB.set('sc_contas', c);
-  document.getElementById('modal-contas').classList.remove('open');
+
+// Calculate real-time balance = base saldo + entradas - despesas since reference date
+function getContasSaldoCalc(moeda) {
+  const contas = getContasArr().filter(c => c.moeda === moeda);
+  if (!contas.length) return 0;
+  const baseTotal = contas.reduce((s, c) => s + (c.saldo || 0), 0);
+  // Collect all reference dates; use the earliest one as the cutoff
+  const dates = contas.map(c => c.dataRef).filter(d => d && d.length === 10);
+  if (!dates.length) return baseTotal;
+  const refDate = dates.sort()[0];
+  const txEntr = (typeof entradas !== 'undefined' ? entradas : [])
+    .filter(e => e.moeda === moeda && e.data >= refDate).reduce((s, e) => s + e.valor, 0);
+  const txDesp = (typeof despesas !== 'undefined' ? despesas : [])
+    .filter(d => d.moeda === moeda && d.data >= refDate).reduce((s, d) => s + d.valor, 0);
+  return baseTotal + txEntr - txDesp;
+}
+
+function setContaTitular(t) {
+  document.getElementById('conta-modal-titular').value = t;
+  ['ambos','camila','ayrton'].forEach(x => document.getElementById('conta-tit-'+x).classList.toggle('active', x===t));
+}
+
+function openContaModal(idx) {
+  const contas = getContasArr();
+  const c = idx >= 0 ? contas[idx] : null;
+  document.getElementById('conta-idx').value = idx;
+  document.getElementById('modal-conta-title').textContent = c ? '✏️ Editar conta' : '💰 Nova conta';
+  document.getElementById('conta-nome').value = c ? c.nome : '';
+  document.getElementById('conta-saldo').value = c ? c.saldo : '';
+  document.getElementById('conta-data-ref').value = c && c.dataRef ? c.dataRef : new Date().toISOString().slice(0,10);
+  const m = c ? (c.moeda || 'eur') : 'eur';
+  document.getElementById('conta-modal-moeda').value = m;
+  document.getElementById('conta-pill-eur').classList.toggle('active', m === 'eur');
+  document.getElementById('conta-pill-brl').classList.toggle('active', m === 'brl');
+  const t = c ? (c.titular || 'ambos') : 'ambos';
+  setContaTitular(t);
+  document.getElementById('conta-modal-cor').value = c ? (c.cor || CONTA_CORES[idx % CONTA_CORES.length]) : CONTA_CORES[contas.length % CONTA_CORES.length];
+  document.getElementById('modal-conta').classList.add('open');
+}
+
+function saveContaItem() {
+  const idx    = parseInt(document.getElementById('conta-idx').value);
+  const nome   = document.getElementById('conta-nome').value.trim();
+  const saldo  = parseFloat(document.getElementById('conta-saldo').value) || 0;
+  const moeda  = document.getElementById('conta-modal-moeda').value || 'eur';
+  const titular= document.getElementById('conta-modal-titular').value || 'ambos';
+  const dataRef= document.getElementById('conta-data-ref').value || '';
+  if (!nome) { alert('Informe o nome da conta.'); return; }
+  const contas = getContasArr();
+  const cor    = document.getElementById('conta-modal-cor').value || CONTA_CORES[idx >= 0 ? idx : contas.length % CONTA_CORES.length];
+  const id     = idx >= 0 ? (contas[idx].id || 'c'+Date.now()) : 'c'+Date.now();
+  const item   = { id, nome, moeda, titular, saldo, dataRef, cor };
+  if (idx >= 0) contas[idx] = item; else contas.push(item);
+  DB.set('sc_contas', contas);
+  document.getElementById('modal-conta').classList.remove('open');
   renderContasSaldos();
   renderInvestimentosValues();
   updateDashCards();
   updateResumoCards();
-  updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || '2026-06');
+  updateSaudeFinanceira();
+  renderAlerts();
+  updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7));
 }
+
+function deleteConta(idx) {
+  if (!confirm('Excluir esta conta?')) return;
+  const contas = getContasArr();
+  contas.splice(idx, 1);
+  DB.set('sc_contas', contas);
+  renderContasSaldos();
+  renderInvestimentosValues();
+  updateDashCards();
+  updateResumoCards();
+  updateSaudeFinanceira();
+  renderAlerts();
+}
+
 function renderContasSaldos() {
-  const c = DB.get('sc_contas', {});
-  const fmtEur = v => '€ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-  const fmtBrl = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-  const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-  set('conta-unicredit', fmtEur(c.unicredit||0));
-  set('conta-mps', fmtEur(c.mps||0));
-  set('conta-itau', fmtBrl(c.itau||0));
-  set('conta-xp', fmtBrl(c.xp||0));
-  set('conta-nubank', fmtBrl(c.nubank||0));
+  const contas = getContasArr();
+  const wrap = document.getElementById('contas-list');
+  if (!wrap) return;
+  if (!contas.length) {
+    wrap.innerHTML = '<div style="padding:16px;text-align:center;color:#aaa;font-size:13px;">Nenhuma conta cadastrada. Toque em <b>+ Adicionar</b>.</div>';
+    return;
+  }
+  const titLabel = t => t==='camila' ? '👩‍💼 Camila' : t==='ayrton' ? '👨‍💼 Ayrton' : '👥 Ambos';
+  const flag = m => m === 'eur' ? '🇮🇹' : '🇧🇷';
+  const sym  = m => m === 'eur' ? '€' : 'R$';
+  const fmtV = (v, m) => (m==='eur'?'€ ':'R$ ') + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  wrap.innerHTML = contas.map((c, i) => {
+    const saldoCalc = (() => {
+      if (!c.dataRef) return c.saldo || 0;
+      const txEntr = (typeof entradas!=='undefined'?entradas:[]).filter(e=>e.moeda===c.moeda&&e.data>=c.dataRef).reduce((s,e)=>s+e.valor,0);
+      const txDesp = (typeof despesas!=='undefined'?despesas:[]).filter(d=>d.moeda===c.moeda&&d.data>=c.dataRef).reduce((s,d)=>s+d.valor,0);
+      return (c.saldo||0) + txEntr - txDesp;
+    })();
+    const diffStr = c.dataRef ? (() => {
+      const diff = saldoCalc - (c.saldo||0);
+      if (Math.abs(diff) < 0.01) return '';
+      return ' <span style="font-size:10px;color:'+(diff>=0?'var(--success)':'var(--danger)')+';">'+(diff>=0?'+':'')+sym(c.moeda)+' '+Math.abs(diff).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span>';
+    })() : '';
+    return `<div class="list-row">
+      <div class="list-dot" style="background:\${c.cor||'#888'};"></div>
+      <div class="list-info">
+        <div class="list-desc">\${c.nome}\${diffStr}</div>
+        <div class="list-sub">\${flag(c.moeda)} \${titLabel(c.titular||'ambos')}\${c.dataRef?' · ref: '+c.dataRef:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="list-val \${c.moeda==='eur'?'text-eur':'text-brl'}">\${fmtV(saldoCalc, c.moeda)}</div>
+        <button onclick="openContaModal(\${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">✏️</button>
+        <button onclick="deleteConta(\${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
@@ -3610,9 +3699,8 @@ function updateDashCards() {
   const mes = new Date().toISOString().slice(0,7);
   const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
-  const c = DB.get('sc_contas',{});
-  const caixaIT = (c.unicredit||0)+(c.mps||0);
-  const caixaBR = (c.itau||0)+(c.xp||0)+(c.nubank||0);
+  const caixaIT = getContasSaldoCalc('eur');
+  const caixaBR = getContasSaldoCalc('brl');
   const inv = DB.get('sc_investimentos',{});
   const xp = inv.xp||0, imovelBR=inv.imovelBr||0, imovelIT=inv.imovelIt||0;
   const fx = fxRates.EURBRL||6.0;
@@ -3658,10 +3746,9 @@ function updateEntrCards() {
 
 function updateResumoCards() {
   const mes = new Date().toISOString().slice(0,7);
-  const c = DB.get('sc_contas',{});
   const fixas = DB.get('sc_fixas',[]);
-  const caixaIT = (c.unicredit||0)+(c.mps||0);
-  const caixaBR = (c.itau||0)+(c.xp||0)+(c.nubank||0);
+  const caixaIT = getContasSaldoCalc('eur');
+  const caixaBR = getContasSaldoCalc('brl');
   const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
   const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
@@ -3677,6 +3764,10 @@ function updateResumoCards() {
   set('res-desp-mes', despMes>0?'- € '+despMes.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
   set('res-saldo-mes', saldoMes!==0?(saldoMes>0?'+ ':'')+'€ '+saldoMes.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
   set('res-acumulado', totEntr>0||totDesp>0?(totEntr-totDesp>=0?'+ ':'')+'€ '+(totEntr-totDesp).toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  // Saldo real = caixa EUR atual (incorpora saldo inicial + todas as transações registradas)
+  const saldoReal = caixaIT;
+  const srEl = document.getElementById('res-saldo-real');
+  if (srEl) srEl.textContent = saldoReal > 0 ? '€ ' + saldoReal.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —';
 }
 
 // ============================================================
@@ -3867,16 +3958,14 @@ function drillRow(label, val, color, bold=false) {
 function openInvModal() {
   const inv = DB.get('sc_investimentos', {});
   const fields = {
-    'inv-unicredit': inv.unicredit ?? 2238,
-    'inv-mps':       inv.mps       ?? 1625,
-    'inv-xp':        inv.xp        ?? 148400,
-    'inv-xp-rf':     inv.xpRf      ?? 81620,
-    'inv-xp-fundo':  inv.xpFundo   ?? 37100,
-    'inv-xp-acoes':  inv.xpAcoes   ?? 17808,
-    'inv-xp-cripto': inv.xpCripto  ?? 11872,
-    'inv-imovel-br': inv.imovelBr  ?? 600000,
-    'inv-imovel-it': inv.imovelIt  ?? 340000,
-    'inv-renda-br':  inv.rendaBr   ?? 2800,
+    'inv-xp':        inv.xp        ?? 0,
+    'inv-xp-rf':     inv.xpRf      ?? 0,
+    'inv-xp-fundo':  inv.xpFundo   ?? 0,
+    'inv-xp-acoes':  inv.xpAcoes   ?? 0,
+    'inv-xp-cripto': inv.xpCripto  ?? 0,
+    'inv-imovel-br': inv.imovelBr  ?? 0,
+    'inv-imovel-it': inv.imovelIt  ?? 0,
+    'inv-renda-br':  inv.rendaBr   ?? 0,
   };
   Object.entries(fields).forEach(([id,v]) => { const el=document.getElementById(id); if(el) el.value=v; });
   document.getElementById('modal-inv').classList.add('open');
@@ -3884,8 +3973,6 @@ function openInvModal() {
 
 function saveInvestimentos() {
   const inv = {
-    unicredit: parseFloat(document.getElementById('inv-unicredit').value)||0,
-    mps:       parseFloat(document.getElementById('inv-mps').value)||0,
     xp:        parseFloat(document.getElementById('inv-xp').value)||0,
     xpRf:      parseFloat(document.getElementById('inv-xp-rf').value)||0,
     xpFundo:   parseFloat(document.getElementById('inv-xp-fundo').value)||0,
@@ -3903,11 +3990,7 @@ function saveInvestimentos() {
 
 function renderInvestimentosValues() {
   const inv = DB.get('sc_investimentos', {});
-  const c   = DB.get('sc_contas', {});
   const fx  = fxRates.EURBRL || 6.0;
-  // Use sc_contas for bank balances if available, else inv fallback, else 0
-  const unicredit = c.unicredit ?? inv.unicredit ?? 0;
-  const mps       = c.mps       ?? inv.mps       ?? 0;
   const xp        = inv.xp      ?? 0;
   const xpRf      = inv.xpRf    ?? 0;
   const xpFundo   = inv.xpFundo ?? 0;
@@ -3916,7 +3999,7 @@ function renderInvestimentosValues() {
   const imovelBR  = inv.imovelBr?? 0;
   const imovelIT  = inv.imovelIt?? 0;
   const rendaBr   = inv.rendaBr ?? 0;
-  const caixaIT   = unicredit + mps;
+  const caixaIT   = getContasSaldoCalc('eur');
   const xpTotal   = xpRf + xpFundo + xpAcoes + xpCripto || xp;
   const total = imovelBR + xpTotal + (imovelIT * fx) + (caixaIT * fx);
 
@@ -3925,17 +4008,15 @@ function renderInvestimentosValues() {
   const fB = (v) => 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   set('inv-total-brl',   total>0?fB(Math.round(total)):'R$ —');
   set('inv-total-eur',   total>0?'≈ € '+Math.round(total/fx).toLocaleString('pt-BR'):'≈ € —');
-  set('inv-caixa-total', caixaIT>0?fE(caixaIT):'€ 0');
-  set('inv-unicredit-val', fE(unicredit));
-  set('inv-mps-val',       fE(mps));
-  set('inv-xp-total',      xpTotal>0?fB(xpTotal):'R$ 0');
-  set('inv-xp-rf-val',     fB(xpRf));
-  set('inv-xp-fundo-val',  fB(xpFundo));
-  set('inv-xp-acoes-val',  fB(xpAcoes));
-  set('inv-xp-cripto-val', fB(xpCripto));
-  set('inv-imovel-br-val', fB(imovelBR));
-  set('inv-imovel-it-val', fE(imovelIT));
-  set('inv-renda-br-val',  fB(rendaBr));
+  set('inv-caixa-total', fE(caixaIT));
+  set('inv-xp-total',    xpTotal>0?fB(xpTotal):'R$ 0');
+  set('inv-xp-rf-val',   fB(xpRf));
+  set('inv-xp-fundo-val',fB(xpFundo));
+  set('inv-xp-acoes-val',fB(xpAcoes));
+  set('inv-xp-cripto-val',fB(xpCripto));
+  set('inv-imovel-br-val',fB(imovelBR));
+  set('inv-imovel-it-val',fE(imovelIT));
+  set('inv-renda-br-val', fB(rendaBr));
   // XP portfolio percentages
   const xpIds  = ['inv-bar-rf','inv-bar-fundo','inv-bar-acoes','inv-bar-cripto'];
   const xpPIds = ['inv-pct-rf','inv-pct-fundo','inv-pct-acoes','inv-pct-cripto'];
@@ -3947,17 +4028,29 @@ function renderInvestimentosValues() {
     xpIds.forEach(id  => { const e=document.getElementById(id); if(e) e.style.width='0%'; });
     xpPIds.forEach(id => { const e=document.getElementById(id); if(e) e.textContent='0%'; });
   }
-  // Caixa Italia percentages
-  if (caixaIT > 0) {
-    const eu=document.getElementById('inv-bar-unicredit'), em=document.getElementById('inv-bar-mps');
-    const pu=document.getElementById('inv-pct-unicredit'), pm=document.getElementById('inv-pct-mps');
-    if(eu) eu.style.width=Math.round(unicredit/caixaIT*100)+'%';
-    if(em) em.style.width=Math.round(mps/caixaIT*100)+'%';
-    if(pu) pu.textContent=Math.round(unicredit/caixaIT*100)+'%';
-    if(pm) pm.textContent=Math.round(mps/caixaIT*100)+'%';
-  } else {
-    ['inv-bar-unicredit','inv-bar-mps'].forEach(id => { const e=document.getElementById(id); if(e) e.style.width='0%'; });
-    ['inv-pct-unicredit','inv-pct-mps'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent='0%'; });
+  // Caixa Italia — render dynamic accounts
+  const eurContas = getContasArr().filter(c=>c.moeda==='eur');
+  const caixaWrap = document.getElementById('inv-caixa-rows');
+  if (caixaWrap && eurContas.length) {
+    caixaWrap.innerHTML = eurContas.map((c,i) => {
+      const sc = (() => {
+        if (!c.dataRef) return c.saldo||0;
+        const te=(typeof entradas!=='undefined'?entradas:[]).filter(e=>e.moeda==='eur'&&e.data>=c.dataRef).reduce((s,e)=>s+e.valor,0);
+        const td=(typeof despesas!=='undefined'?despesas:[]).filter(d=>d.moeda==='eur'&&d.data>=c.dataRef).reduce((s,d)=>s+d.valor,0);
+        return (c.saldo||0)+te-td;
+      })();
+      const pct = caixaIT > 0 ? Math.round(sc/caixaIT*100) : 0;
+      return `<div class="port-row">
+        <div class="port-dot" style="background:\${c.cor||'#888'};"></div>
+        <div class="port-name">\${c.nome}</div>
+        <div class="port-bar-wrap"><div class="port-bar" style="width:\${pct}%;background:\${c.cor||'#888'};"></div></div>
+        <div class="port-pct">\${pct}%</div>
+        <div class="port-val text-eur">\${fE(sc)}</div>
+        <div class="port-rent" style="color:#aaa;">0,0%</div>
+      </div>`;
+    }).join('');
+  } else if (caixaWrap) {
+    caixaWrap.innerHTML = '<div style="padding:8px;font-size:12px;color:#aaa;">Adicione contas em EUR na aba Resumo.</div>';
   }
   // Mútuo from sc_financiamentos
   const financ = DB.get('sc_financiamentos',[]);
@@ -4000,8 +4093,7 @@ function updateDailyAnalysis(mes) {
   const wrap = document.getElementById('daily-analysis-wrap');
   if (!wrap) return;
   const fixas = DB.get('sc_fixas', []);
-  const c = DB.get('sc_contas', {});
-  const saldoInicial = (c.unicredit||0) + (c.mps||0);
+  const saldoInicial = getContasSaldoCalc('eur');
   const MESES_PT = {
     '01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
     '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'
@@ -4114,12 +4206,11 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
 // SAÚDE FINANCEIRA — dynamic score
 // ============================================================
 function updateSaudeFinanceira() {
-  const c = DB.get('sc_contas', {});
   const fixas = DB.get('sc_fixas', []);
   const mes = new Date().toISOString().slice(0, 7);
   const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0);
   const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0);
-  const caixaIT = (c.unicredit || 0) + (c.mps || 0);
+  const caixaIT = getContasSaldoCalc('eur');
   const totFixasEur = fixas.filter(f => f.moeda === 'eur').reduce((s, f) => s + f.valor, 0);
   const hasData = entrMes > 0 || despMes > 0 || caixaIT > 0;
 
@@ -4175,12 +4266,11 @@ function renderAlerts() {
   const wrap = document.getElementById('dash-alerts-wrap');
   if (!wrap) return;
   const fixas = DB.get('sc_fixas', []);
-  const c = DB.get('sc_contas', {});
   const mes = new Date().toISOString().slice(0, 7);
   const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0);
   const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0);
   const totFixasEur = fixas.filter(f => f.moeda === 'eur').reduce((s, f) => s + f.valor, 0);
-  const caixaIT = (c.unicredit || 0) + (c.mps || 0);
+  const caixaIT = getContasSaldoCalc('eur');
   const today = new Date().getDate();
   const hasAnyData = entrMes > 0 || despMes > 0 || caixaIT > 0 || fixas.length > 0 || despesas.length > 0 || entradas.length > 0;
 
@@ -4243,7 +4333,7 @@ function forceRefresh() {
   renderEntrList(); renderEntrTable(); renderMetas(); renderHistorico();
   renderFixas(); renderContasSaldos(); renderInvestimentosValues();
   updateDashCards(); updateEntrCards(); updateResumoCards();
-  updateCharts(); renderAlerts(); updateSaudeFinanceira(); renderFinanciamentos(); renderEstratInsights(); updateEvolChart();
+  updateCharts(); renderAlerts(); updateSaudeFinanceira(); renderFinanciamentos(); refreshSimuladorOptions(); renderEstratInsights(); updateEvolChart();
   const curMes = document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7);
   updateDailyAnalysis(curMes);
 }
@@ -4256,11 +4346,12 @@ function openFinancModal(idx) {
   const financ = DB.get('sc_financiamentos', []);
   const f = idx >= 0 ? financ[idx] : null;
   document.getElementById('financ-idx').value = idx;
-  document.getElementById('financ-nome').value    = f ? f.nome    : '';
-  document.getElementById('financ-parcela').value = f ? f.parcela : '';
-  document.getElementById('financ-taxa').value    = f ? f.taxa    : '';
-  document.getElementById('financ-saldo').value   = f ? f.saldo   : '';
-  document.getElementById('financ-prazo').value   = f ? f.prazo   : '';
+  document.getElementById('financ-nome').value      = f ? f.nome      : '';
+  document.getElementById('financ-parcela').value   = f ? f.parcela   : '';
+  document.getElementById('financ-taxa').value      = f ? f.taxa      : '';
+  document.getElementById('financ-saldo').value     = f ? f.saldo     : '';
+  document.getElementById('financ-prazo').value     = f ? f.prazo     : '';
+  document.getElementById('financ-data-inicio').value = f && f.dataInicio ? f.dataInicio : '';
   const m = f ? (f.moeda || 'eur') : 'eur';
   document.getElementById('financ-pill-eur').classList.toggle('active', m === 'eur');
   document.getElementById('financ-pill-brl').classList.toggle('active', m === 'brl');
@@ -4268,20 +4359,30 @@ function openFinancModal(idx) {
   document.getElementById('modal-financ').classList.add('open');
 }
 function saveFinanc() {
-  const idx     = parseInt(document.getElementById('financ-idx').value);
-  const nome    = document.getElementById('financ-nome').value.trim();
-  const parcela = parseFloat(document.getElementById('financ-parcela').value) || 0;
-  const taxa    = document.getElementById('financ-taxa').value.trim();
-  const saldo   = document.getElementById('financ-saldo').value.trim();
-  const prazo   = document.getElementById('financ-prazo').value.trim();
-  const moeda   = document.getElementById('financ-modal-moeda').value || 'eur';
+  const idx       = parseInt(document.getElementById('financ-idx').value);
+  const nome      = document.getElementById('financ-nome').value.trim();
+  const parcela   = parseFloat(document.getElementById('financ-parcela').value) || 0;
+  const taxa      = document.getElementById('financ-taxa').value.trim();
+  const saldo     = parseFloat(document.getElementById('financ-saldo').value) || 0;
+  const prazo     = parseInt(document.getElementById('financ-prazo').value) || 0;
+  const dataInicio= document.getElementById('financ-data-inicio').value || '';
+  const moeda     = document.getElementById('financ-modal-moeda').value || 'eur';
   if (!nome || !parcela) { alert('Preencha nome e parcela.'); return; }
   const financ = DB.get('sc_financiamentos', []);
-  const item = { nome, parcela, taxa, saldo, prazo, moeda };
+  // Calculate remaining months if dataInicio and prazo are set
+  let mesesRestantes = prazo;
+  if (dataInicio && prazo) {
+    const [iy, im] = dataInicio.split('-').map(Number);
+    const now = new Date();
+    const elapsed = (now.getFullYear() - iy) * 12 + (now.getMonth() + 1 - im);
+    mesesRestantes = Math.max(0, prazo - elapsed);
+  }
+  const item = { nome, parcela, taxa, saldo, prazo, dataInicio, mesesRestantes, moeda };
   if (idx >= 0) financ[idx] = item; else financ.push(item);
   DB.set('sc_financiamentos', financ);
   document.getElementById('modal-financ').classList.remove('open');
   renderFinanciamentos();
+  refreshSimuladorOptions();
   renderInvestimentosValues();
   renderEstratInsights();
 }
@@ -4291,9 +4392,31 @@ function deleteFinanc(idx) {
   financ.splice(idx, 1);
   DB.set('sc_financiamentos', financ);
   renderFinanciamentos();
+  refreshSimuladorOptions();
   renderInvestimentosValues();
   renderEstratInsights();
 }
+function refreshSimuladorOptions() {
+  const sel = document.getElementById('sim-divida');
+  if (!sel) return;
+  const financ = DB.get('sc_financiamentos', []);
+  const eurFinanc = financ.filter(f => f.moeda === 'eur' && f.parcela && f.saldo);
+  if (!eurFinanc.length) {
+    sel.innerHTML = '<option value="">-- adicione financiamentos na seção acima --</option>';
+    return;
+  }
+  sel.innerHTML = eurFinanc.map((f, i) => {
+    const taxaAa = parseFloat(f.taxa) || 0;
+    const taxaMensal = taxaAa / 12 / 100;
+    const prazo = f.mesesRestantes || f.prazo || 0;
+    const sym = f.moeda === 'eur' ? '€' : 'R$';
+    const label = `\${f.nome} (\${taxaAa > 0 ? taxaAa + '% a.a.' : 'sem juros'}) · \${sym} \${parseFloat(f.parcela).toLocaleString('pt-BR')}/mês`;
+    // value format: saldo,taxaMensal,parcela,prazo
+    return `<option value="\${f.saldo},\${taxaMensal},\${f.parcela},\${prazo}">\${label}</option>`;
+  }).join('');
+  calcAntecipar();
+}
+
 function renderFinanciamentos() {
   const wrap = document.getElementById('financ-wrap');
   if (!wrap) return;
@@ -4333,8 +4456,8 @@ function renderFinanciamentos() {
           <td>${f.nome}</td>
           <td><span class="rate-badge ${rateClass(f.taxa)}">${taxaLabel(f.taxa)}</span></td>
           <td>${sym(f)} ${parseFloat(f.parcela).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês</td>
-          <td>${f.saldo ? (isNaN(f.saldo) ? f.saldo : '≈ '+sym(f)+' '+parseFloat(f.saldo).toLocaleString('pt-BR')) : '—'}</td>
-          <td>${f.prazo || '—'}</td>
+          <td>${f.saldo ? '≈ '+sym(f)+' '+parseFloat(f.saldo).toLocaleString('pt-BR') : '—'}</td>
+          <td>${f.prazo ? f.prazo+' meses'+(f.dataInicio?' <span style="opacity:.6;font-size:10px;">(início '+f.dataInicio+')</span>':'')+(f.mesesRestantes!=null&&f.mesesRestantes!==f.prazo?' · <b>'+f.mesesRestantes+' restantes</b>':'') : '—'}</td>
           <td style="white-space:nowrap;">
             <button onclick="openFinancModal(${i})" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Editar">✏️</button>
             <button onclick="deleteFinanc(${i})" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Excluir">🗑</button>
@@ -4355,14 +4478,13 @@ function renderFinanciamentos() {
 function renderEstratInsights() {
   const wrap = document.getElementById('estrat-insights-wrap');
   if (!wrap) return;
-  const c       = DB.get('sc_contas', {});
   const fixas   = DB.get('sc_fixas', []);
   const financ  = DB.get('sc_financiamentos', []);
   const inv     = DB.get('sc_investimentos', {});
   const mes     = new Date().toISOString().slice(0, 7);
   const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
-  const caixaIT = (c.unicredit||0) + (c.mps||0);
+  const caixaIT = getContasSaldoCalc('eur');
   const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
   const totParcelasEur = financ.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.parcela,0);
   const totalComprometido = totFixasEur + totParcelasEur;
@@ -4428,10 +4550,9 @@ function renderEstratInsights() {
 // ============================================================
 function updateEvolChart() {
   const inv = DB.get('sc_investimentos', {});
-  const c   = DB.get('sc_contas', {});
   const fx  = fxRates.EURBRL || 6.0;
   const total = (inv.imovelBr||0) + (inv.xpRf||0) + (inv.xpFundo||0) + (inv.xpAcoes||0) + (inv.xpCripto||0)
-              + ((inv.imovelIt||0) * fx) + (((c.unicredit||0)+(c.mps||0)) * fx);
+              + ((inv.imovelIt||0) * fx) + (getContasSaldoCalc('eur') * fx);
   const yr = new Date().getFullYear().toString();
   for (const id of ['evolChart', 'resumoEvolChart']) {
     if (!charts[id]) continue;
