@@ -142,7 +142,7 @@ function changePwd(user) {
 function resetData() {
   if (!confirm('⚠️ Isso vai apagar TODAS as despesas, entradas e metas salvas.\n\nTem certeza?')) return;
   if (!confirm('Confirmar reset completo? Essa ação não pode ser desfeita.')) return;
-  ['sc_despesas','sc_entradas','sc_metas','sc_hist','sc_investimentos'].forEach(k => localStorage.removeItem(k));
+  ['sc_despesas','sc_entradas','sc_metas','sc_hist','sc_investimentos','sc_fixas','sc_contas'].forEach(k => localStorage.removeItem(k));
   despesas = [];
   entradas = [];
   metas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
@@ -158,6 +158,9 @@ function resetData() {
   if(typeof updateDashCards==='function') updateDashCards();
   if(typeof updateEntrCards==='function') updateEntrCards();
   if(typeof updateResumoCards==='function') updateResumoCards();
+  if(typeof updateCharts==='function') updateCharts();
+  if(typeof renderAlerts==='function') renderAlerts();
+  if(typeof updateSaudeFinanceira==='function') updateSaudeFinanceira();
   closeSettings();
   alert('✅ Dados zerados. O app está limpo para começar de novo!');
 }
@@ -920,52 +923,34 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="score-wrap">
       <canvas id="scoreChart" width="80" height="80"></canvas>
       <div class="score-label-wrap">
-        <div class="score-num">72</div>
+        <div class="score-num" id="health-score-num">—</div>
         <div class="score-txt">/ 100</div>
       </div>
     </div>
     <div class="health-details">
-      <div class="health-title">Boa — com atenção</div>
-      <div class="health-sub">Patrimônio crescente. Atenção ao comprometimento com dívidas fixas.</div>
+      <div class="health-title" id="health-title-1">Configure seus dados</div>
+      <div class="health-sub" id="health-sub-1">Adicione entradas e despesas para calcular sua saúde financeira.</div>
       <div class="hbar-row">
         <div class="hbar-label">Reserva emergência</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:21%;background:var(--warn);"></div></div>
-        <div class="hbar-val text-warn">21%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-reserva-fill" style="width:0%;background:var(--warn);"></div></div>
+        <div class="hbar-val" id="hbar-reserva-val">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Comprom. renda</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:68%;background:var(--danger);"></div></div>
-        <div class="hbar-val text-danger">68%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-comprom-fill" style="width:0%;background:var(--danger);"></div></div>
+        <div class="hbar-val" id="hbar-comprom-val">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Taxa poupança</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:32%;background:var(--eur-c);"></div></div>
-        <div class="hbar-val text-eur">32%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupanca-fill" style="width:0%;background:var(--eur-c);"></div></div>
+        <div class="hbar-val" id="hbar-poupanca-val">—</div>
       </div>
     </div>
   </div>
 
   <div class="section-title">Alertas</div>
-  <div class="alert-card warn">
-    <div class="alert-icon">⚠️</div>
-    <div class="alert-body">
-      <div class="alert-title">Mútuo vence em 3 dias</div>
-      <div class="alert-text" id="dash-alert-mutuo">Verifique suas despesas fixas na aba Cashflow.</div>
-    </div>
-  </div>
-  <div class="alert-card danger">
-    <div class="alert-icon">🔴</div>
-    <div class="alert-body">
-      <div class="alert-title">Reserva de emergência baixa</div>
-      <div class="alert-text">Configure suas metas financeiras na aba Resumo.</div>
-    </div>
-  </div>
-  <div class="alert-card success">
-    <div class="alert-icon">✅</div>
-    <div class="alert-body">
-      <div class="alert-title">Meta XP no prazo</div>
-      <div class="alert-text">Acompanhe seus aportes e metas na aba Resumo.</div>
-    </div>
+  <div id="dash-alerts-wrap">
+    <div class="alert-card info"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Carregando alertas...</div><div class="alert-text">Aguarde.</div></div></div>
   </div>
 
   <div class="section-title">Gastos por categoria — Jun</div>
@@ -1704,13 +1689,13 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="score-wrap">
       <canvas id="estratScore" width="80" height="80"></canvas>
       <div class="score-label-wrap">
-        <div class="score-num">72</div>
+        <div class="score-num" id="health-score-num-2">—</div>
         <div class="score-txt">/ 100</div>
       </div>
     </div>
     <div class="health-details">
-      <div class="health-title">Boa — com atenção</div>
-      <div class="health-sub">Patrimônio sólido e crescente. Atenção ao comprometimento com dívidas fixas mensais.</div>
+      <div class="health-title" id="health-title-2">Configure seus dados</div>
+      <div class="health-sub" id="health-sub-2">Adicione entradas e despesas para calcular sua saúde financeira.</div>
       <div class="hbar-row">
         <div class="hbar-label">Reserva emergência</div>
         <div class="hbar-track"><div class="hbar-fill" style="width:21%;background:var(--warn);"></div></div>
@@ -2044,7 +2029,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
     <div class="settings-body">
 
-      <!-- Usuário logado -->
+      <!-- Sessão -->
       <div class="settings-section">
         <div class="settings-section-title">Sessão atual</div>
         <div class="settings-row">
@@ -2052,56 +2037,72 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <div class="settings-row-val" id="settings-user-nome">—</div>
         </div>
         <div class="settings-row" style="padding:10px 14px">
-          <button class="settings-action-btn logout" style="margin:0" onclick="logout()">🚪 Sair / trocar usuário</button>
+          <button class="settings-action-btn logout" style="margin:0;width:100%;" onclick="logout()">🚪 Sair / trocar usuário</button>
         </div>
       </div>
 
-      <!-- Alterar senha Camila -->
+      <!-- Segurança -->
       <div class="settings-section">
-        <div class="settings-section-title">Senha — Camila</div>
-        <div class="settings-pwd-group">
-          <div class="flabel">Nova senha</div>
-          <input type="password" id="settings-pwd-camila" placeholder="Nova senha" autocomplete="new-password" />
-          <div class="flabel">Confirmar senha</div>
-          <input type="password" id="settings-pwd2-camila" placeholder="Repetir senha" autocomplete="new-password" />
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-            <div class="settings-msg" id="settings-msg-camila"></div>
-            <button class="settings-pwd-btn" onclick="changePwd('camila')">Salvar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Alterar senha Ayrton -->
-      <div class="settings-section">
-        <div class="settings-section-title">Senha — Ayrton</div>
-        <div class="settings-pwd-group">
-          <div class="flabel">Nova senha</div>
-          <input type="password" id="settings-pwd-ayrton" placeholder="Nova senha" autocomplete="new-password" />
-          <div class="flabel">Confirmar senha</div>
-          <input type="password" id="settings-pwd2-ayrton" placeholder="Repetir senha" autocomplete="new-password" />
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-            <div class="settings-msg" id="settings-msg-ayrton"></div>
-            <button class="settings-pwd-btn" onclick="changePwd('ayrton')">Salvar</button>
-          </div>
+        <div class="settings-section-title">Segurança</div>
+        <div class="settings-row" style="padding:10px 14px">
+          <button class="settings-action-btn logout" style="margin:0;width:100%;" onclick="openPwdModal()">🔑 Alterar senhas</button>
         </div>
       </div>
 
       <!-- Dados -->
       <div class="settings-section">
         <div class="settings-section-title">Dados</div>
-        <div class="settings-row" style="padding:10px 14px">
-          <button class="settings-action-btn danger" style="margin:0" onclick="resetData()">🗑 Zerar todos os dados</button>
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+          <button class="settings-action-btn logout" style="margin:0;width:100%;" onclick="closeSettings();forceRefresh()">🔄 Atualizar dados</button>
+          <button class="settings-action-btn danger" style="margin:0;width:100%;" onclick="resetData()">🗑 Zerar todos os dados</button>
         </div>
       </div>
 
-      <!-- Histórico -->
+      <!-- Outros -->
       <div class="settings-section">
         <div class="settings-section-title">Outros</div>
         <div class="settings-row" style="padding:10px 14px">
-          <button class="settings-action-btn logout" style="margin:0" onclick="closeSettings();showTab('historico',null,null)">📋 Ver histórico de uploads</button>
+          <button class="settings-action-btn logout" style="margin:0;width:100%;" onclick="closeSettings();showTab('historico',null,null)">📋 Ver histórico de uploads</button>
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SENHAS -->
+<div class="modal-overlay" id="modal-passwords" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Alterar senhas</div>
+      <button class="modal-close" onclick="document.getElementById('modal-passwords').classList.remove('open')">×</button>
+    </div>
+    <div style="padding:0 0 12px;">
+      <div class="settings-section-title" style="padding:8px 0 4px;">Senha — Camila</div>
+      <div class="settings-pwd-group">
+        <div class="flabel">Nova senha</div>
+        <input type="password" id="settings-pwd-camila" placeholder="Nova senha" autocomplete="new-password" />
+        <div class="flabel">Confirmar senha</div>
+        <input type="password" id="settings-pwd2-camila" placeholder="Repetir senha" autocomplete="new-password" />
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <div class="settings-msg" id="settings-msg-camila"></div>
+          <button class="settings-pwd-btn" onclick="changePwd('camila')">Salvar Camila</button>
+        </div>
+      </div>
+      <div class="settings-section-title" style="padding:12px 0 4px;">Senha — Ayrton</div>
+      <div class="settings-pwd-group">
+        <div class="flabel">Nova senha</div>
+        <input type="password" id="settings-pwd-ayrton" placeholder="Nova senha" autocomplete="new-password" />
+        <div class="flabel">Confirmar senha</div>
+        <input type="password" id="settings-pwd2-ayrton" placeholder="Repetir senha" autocomplete="new-password" />
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <div class="settings-msg" id="settings-msg-ayrton"></div>
+          <button class="settings-pwd-btn" onclick="changePwd('ayrton')">Salvar Ayrton</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal-passwords').classList.remove('open')">Fechar</button>
     </div>
   </div>
 </div>
@@ -2160,6 +2161,16 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <div class="fg">
           <div class="flabel">Dia do mês (venc.)</div>
           <input class="finput" type="number" id="fixa-dia" placeholder="Ex: 1, 5, 15..." min="1" max="31" />
+        </div>
+      </div>
+      <div class="form-grid" style="margin-top:10px;">
+        <div class="fg">
+          <div class="flabel">Data início</div>
+          <input class="finput" type="month" id="fixa-inicio" />
+        </div>
+        <div class="fg">
+          <div class="flabel">Data fim (opcional)</div>
+          <input class="finput" type="month" id="fixa-fim" placeholder="Deixe em branco se contínuo" />
         </div>
       </div>
     </div>
@@ -2638,6 +2649,9 @@ function saveEntrada() {
   updateEntrCards();
   updateDashCards();
   updateResumoCards();
+  updateCharts();
+  renderAlerts();
+  updateSaudeFinanceira();
   document.getElementById('entr-valor').value = '';
   document.getElementById('entr-desc').value = '';
   toggleForm('entr-form');
@@ -2920,7 +2934,7 @@ function mkChart(id, cfg) {
 }
 
 function scoreDonut(id) {
-  if (charts[id]) return;
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
   const el = document.getElementById(id);
   if (!el) return;
   charts[id] = new Chart(el.getContext('2d'), {
@@ -3370,6 +3384,7 @@ async function handlePDFImport(file, type, statusEl, input) {
     DB.set('sc_hist', hist.slice(0, 200));
     renderDespList(); renderDespTable(); renderCatSummary(); renderHistorico();
     updateDashCards(); updateEntrCards(); updateResumoCards();
+    updateCharts(); renderAlerts(); updateSaudeFinanceira();
     statusEl.textContent = '✅ ' + imported + ' despesas importadas do extrato MPS PDF. (' + skipped + ' linhas ignoradas)';
     if (input) input.value = '';
   } catch(err) {
@@ -3431,6 +3446,8 @@ function openFixaModal(idx) {
   document.getElementById('fixa-pill-eur').classList.toggle('active', m==='eur');
   document.getElementById('fixa-pill-brl').classList.toggle('active', m==='brl');
   document.getElementById('fixa-modal-moeda').value = m;
+  document.getElementById('fixa-inicio').value = f && f.dataInicio ? f.dataInicio : '';
+  document.getElementById('fixa-fim').value = f && f.dataFim ? f.dataFim : '';
   document.getElementById('modal-fixa').classList.add('open');
 }
 function saveFixa() {
@@ -3441,13 +3458,18 @@ function saveFixa() {
   const moeda= document.getElementById('fixa-modal-moeda').value || 'eur';
   if (!nome || !valor) { alert('Preencha nome e valor.'); return; }
   const fixas = DB.get('sc_fixas', []);
-  const item = {nome, valor, dia, moeda};
+  const dataInicio = document.getElementById('fixa-inicio').value || '';
+  const dataFim = document.getElementById('fixa-fim').value || '';
+  const item = {nome, valor, dia, moeda, dataInicio, dataFim};
   if (idx >= 0) fixas[idx] = item; else fixas.push(item);
   DB.set('sc_fixas', fixas);
   document.getElementById('modal-fixa').classList.remove('open');
   renderFixas();
   updateResumoCards();
-  updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || '2026-06');
+  updateCharts();
+  renderAlerts();
+  updateSaudeFinanceira();
+  updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7));
 }
 function deleteFixa(idx) {
   if (!confirm('Excluir esta despesa fixa?')) return;
@@ -3456,6 +3478,9 @@ function deleteFixa(idx) {
   DB.set('sc_fixas', fixas);
   renderFixas();
   updateResumoCards();
+  updateCharts();
+  renderAlerts();
+  updateSaudeFinanceira();
 }
 function renderFixas() {
   const list = document.getElementById('fixas-list');
@@ -3473,7 +3498,8 @@ function renderFixas() {
     const cls = f.moeda==='eur'?'badge-eur':'badge-brl';
     const col = f.moeda==='eur'?'':'text-brl';
     const div = document.createElement('div'); div.className='fixas-row';
-    div.innerHTML='<div class="fixas-info"><span class="list-badge '+cls+'">'+f.moeda.toUpperCase()+'</span> '+f.nome+' <span class="fixas-day">dia '+f.dia+'</span></div>'
+    const dateRange = (f.dataInicio||f.dataFim) ? ' <span class="fixas-day" style="opacity:.7;">'+(f.dataInicio||'?')+(f.dataFim?' → '+f.dataFim:' → ∞')+'</span>' : '';
+    div.innerHTML='<div class="fixas-info"><span class="list-badge '+cls+'">'+f.moeda.toUpperCase()+'</span> '+f.nome+' <span class="fixas-day">dia '+f.dia+'</span>'+dateRange+'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;"><div class="fixas-val '+col+'">- '+sym+' '+f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'
       +'<button onclick="openFixaModal('+i+')" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Editar">✏️</button>'
       +'<button onclick="deleteFixa('+i+')" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px;" title="Excluir">🗑</button></div>';
@@ -3916,6 +3942,208 @@ function updateDailyAnalysis(mes) {
     + '</div></div>';
 }
 
+
+// ============================================================
+// CHARTS — update from real data
+// ============================================================
+function updateCharts() {
+  // Category data from real despesas
+  const CAT_ORDER = ['alimentacao','mercado','assinaturas','auto','compras','saude','transporte','viagem','outros'];
+  const CAT_LABELS_LIST = ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Outros'];
+  const CAT_COLORS_LIST = ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#888'];
+  const catSums = {};
+  CAT_ORDER.forEach(c => { catSums[c] = 0; });
+  despesas.filter(d => d.moeda === 'eur').forEach(d => {
+    const cat = d.categoria || 'outros';
+    catSums[cat] = (catSums[cat] || 0) + d.valor;
+  });
+  const catVals = CAT_ORDER.map(c => Math.round((catSums[c] || 0) * 100) / 100);
+
+  ['dashCatChart', 'despCatChart', 'resumoCatChart'].forEach(id => {
+    if (charts[id]) {
+      charts[id].data.datasets[0].data = catVals;
+      charts[id].update('none');
+    } else {
+      catDoughnut(id, CAT_LABELS_LIST, catVals, CAT_COLORS_LIST);
+    }
+  });
+
+  // CF data from real entradas/despesas (full year)
+  const now = new Date();
+  const yr = now.getFullYear();
+  const MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mKeys = Array.from({length:12}, (_, i) => `${yr}-${String(i+1).padStart(2,'0')}`);
+  const curIdx = now.getMonth();
+  const entrByMo = mKeys.map(m => entradas.filter(e => e.data && e.data.startsWith(m) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0));
+  const despByMo = mKeys.map(m => despesas.filter(d => d.data && d.data.startsWith(m) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0));
+  const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
+
+  cfBarLine('miniCfChart', entrByMo.slice(0,6), despByMo.slice(0,6), dreByMo.slice(0,6), MESES_SHORT.slice(0,6), Math.min(curIdx, 5));
+  cfBarLine('cfMainChart', entrByMo, despByMo, dreByMo, MESES_SHORT, curIdx);
+  cfBarLine('resumoCfChart', entrByMo, despByMo, dreByMo, MESES_SHORT, curIdx);
+
+  // DRE table
+  updateDRETable(entrByMo, despByMo, curIdx);
+}
+
+function updateDRETable(entrByMo, despByMo, curIdx) {
+  const tbody = document.getElementById('dre-body');
+  if (!tbody) return;
+  // Update DRE_ROWS arrays in-place (arrays are mutable even inside const)
+  const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === 'eur');
+  const totFixas = fixas.reduce((s, f) => s + f.valor, 0);
+  const fixasByMo = Array.from({length:12}, (_, i) => i <= curIdx ? totFixas : 0);
+  const varByMo = despByMo.map((d, i) => Math.max(0, d - fixasByMo[i]));
+  const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
+  DRE_ROWS[1].vals = entrByMo;
+  DRE_ROWS[5].vals = despByMo;
+  DRE_ROWS[6].vals = fixasByMo;
+  DRE_ROWS[7].vals = varByMo;
+  DRE_ROWS[8].vals = dreByMo;
+  // Rebuild table
+  tbody.innerHTML = '';
+  buildDRETable();
+}
+
+// ============================================================
+// SAÚDE FINANCEIRA — dynamic score
+// ============================================================
+function updateSaudeFinanceira() {
+  const c = DB.get('sc_contas', {});
+  const fixas = DB.get('sc_fixas', []);
+  const mes = new Date().toISOString().slice(0, 7);
+  const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0);
+  const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0);
+  const caixaIT = (c.unicredit || 0) + (c.mps || 0);
+  const totFixasEur = fixas.filter(f => f.moeda === 'eur').reduce((s, f) => s + f.valor, 0);
+  const hasData = entrMes > 0 || despMes > 0 || caixaIT > 0;
+
+  if (!hasData) {
+    const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    ['health-score-num','health-score-num-2'].forEach(id => setTxt(id, '—'));
+    ['health-title-1','health-title-2'].forEach(id => setTxt(id, 'Configure seus dados'));
+    ['health-sub-1','health-sub-2'].forEach(id => setTxt(id, 'Adicione entradas, despesas e contas para calcular sua saúde financeira.'));
+    ['hbar-reserva-val','hbar-comprom-val','hbar-poupanca-val'].forEach(id => setTxt(id, '—'));
+    ['hbar-reserva-fill','hbar-comprom-fill','hbar-poupanca-fill'].forEach(id => { const e = document.getElementById(id); if (e) e.style.width = '0%'; });
+    return;
+  }
+
+  const metaEmerg = 18000;
+  const reservaPct = metaEmerg > 0 ? Math.min(Math.round(caixaIT / metaEmerg * 100), 100) : 0;
+  const compromPct = entrMes > 0 && totFixasEur > 0 ? Math.min(Math.round(totFixasEur / entrMes * 100), 100) : 0;
+  const poupancaPct = entrMes > 0 ? Math.max(0, Math.min(Math.round((entrMes - despMes) / entrMes * 100), 100)) : 0;
+
+  const reservaScore  = reservaPct * 0.25;
+  const compromScore  = compromPct > 0 ? Math.max(0, (100 - compromPct)) * 0.45 : 45;
+  const poupancaScore = poupancaPct * 0.30;
+  const score = Math.round(reservaScore + compromScore + poupancaScore);
+
+  let title, sub;
+  if (score >= 80)      { title = 'Excelente 🏆'; sub = 'Finanças bem equilibradas. Continue assim!'; }
+  else if (score >= 60) { title = 'Boa — com atenção'; sub = 'Bom caminho. Reduza o comprometimento de renda se possível.'; }
+  else if (score >= 40) { title = 'Regular ⚠️'; sub = 'Revise suas despesas fixas e aumente a reserva de emergência.'; }
+  else                  { title = 'Atenção necessária 🔴'; sub = 'Despesas comprometem muito a renda. Revise o planejamento urgente.'; }
+
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const setW   = (id, w) => { const e = document.getElementById(id); if (e) e.style.width = w; };
+
+  setTxt('health-score-num', score); setTxt('health-score-num-2', score);
+  setTxt('health-title-1', title);   setTxt('health-title-2', title);
+  setTxt('health-sub-1', sub);       setTxt('health-sub-2', sub);
+  setTxt('hbar-reserva-val', reservaPct + '%'); setW('hbar-reserva-fill', reservaPct + '%');
+  setTxt('hbar-comprom-val', compromPct + '%'); setW('hbar-comprom-fill', compromPct + '%');
+  setTxt('hbar-poupanca-val', poupancaPct + '%'); setW('hbar-poupanca-fill', poupancaPct + '%');
+
+  // Update score donuts
+  [{ id:'scoreChart', cid:'scoreChart' }, { id:'estratScore', cid:'estratScore' }].forEach(({id}) => {
+    if (charts[id]) {
+      charts[id].data.datasets[0].data = [score, 100 - score];
+      charts[id].update('none');
+    }
+  });
+}
+
+// ============================================================
+// ALERTAS — inteligentes baseados em dados reais
+// ============================================================
+function renderAlerts() {
+  const wrap = document.getElementById('dash-alerts-wrap');
+  if (!wrap) return;
+  const fixas = DB.get('sc_fixas', []);
+  const c = DB.get('sc_contas', {});
+  const mes = new Date().toISOString().slice(0, 7);
+  const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0);
+  const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0);
+  const totFixasEur = fixas.filter(f => f.moeda === 'eur').reduce((s, f) => s + f.valor, 0);
+  const caixaIT = (c.unicredit || 0) + (c.mps || 0);
+  const today = new Date().getDate();
+  const hasAnyData = entrMes > 0 || despMes > 0 || caixaIT > 0 || fixas.length > 0 || despesas.length > 0 || entradas.length > 0;
+
+  if (!hasAnyData) {
+    wrap.innerHTML = '<div class="alert-card info"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Comece adicionando seus dados</div><div class="alert-text">Cadastre entradas, despesas e despesas fixas para receber alertas personalizados.</div></div></div>';
+    return;
+  }
+
+  const alerts = [];
+
+  // Upcoming fixas (next 7 days)
+  fixas.filter(f => f.moeda === 'eur').forEach(f => {
+    const dias = f.dia - today;
+    if (dias >= 0 && dias <= 7) {
+      const quando = dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : `em ${dias} dias`;
+      alerts.push({type:'warn', icon:'⚠️', title:`${f.nome} vence ${quando}`, text:`Valor: € ${f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}. Saldo atual: € ${caixaIT.toLocaleString('pt-BR',{minimumFractionDigits:2})}.`});
+    }
+  });
+
+  // Low reserve
+  if (caixaIT > 0 && totFixasEur > 0) {
+    const coverageMonths = caixaIT / totFixasEur;
+    if (coverageMonths < 2) alerts.push({type:'danger', icon:'🔴', title:'Reserva muito baixa', text:`Cobertura: ${coverageMonths.toFixed(1)} meses. Recomendado mínimo 3 meses.`});
+    else if (coverageMonths < 4) alerts.push({type:'warn', icon:'⚠️', title:'Reserva abaixo do ideal', text:`Cobertura: ${coverageMonths.toFixed(1)} meses. Recomendado 6 meses (€ 18.000).`});
+  }
+
+  // High income commitment
+  if (entrMes > 0 && totFixasEur > 0) {
+    const pct = Math.round(totFixasEur / entrMes * 100);
+    if (pct > 70) alerts.push({type:'danger', icon:'🔴', title:'Comprometimento alto', text:`${pct}% da renda comprometida com despesas fixas. Revise o planejamento.`});
+    else if (pct > 50) alerts.push({type:'warn', icon:'⚠️', title:'Comprometimento elevado', text:`${pct}% da renda comprometida com despesas fixas.`});
+  }
+
+  // Positive savings
+  if (entrMes > 0 && despMes >= 0) {
+    const poupanca = entrMes - despMes;
+    if (poupanca > 0 && despMes > 0) alerts.push({type:'success', icon:'✅', title:'Saldo positivo este mês', text:`€ ${poupanca.toLocaleString('pt-BR',{minimumFractionDigits:2})} disponível. Considere investir a sobra.`});
+  }
+
+  if (!alerts.length) {
+    alerts.push({type:'success', icon:'✅', title:'Tudo em ordem!', text:'Sem alertas críticos. Continue monitorando suas finanças.'});
+  }
+
+  wrap.innerHTML = alerts.map(a =>
+    `<div class="alert-card ${a.type}"><div class="alert-icon">${a.icon}</div><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-text">${a.text}</div></div></div>`
+  ).join('');
+}
+
+// ============================================================
+// CONFIGURAÇÕES — funções auxiliares
+// ============================================================
+function openPwdModal() {
+  document.getElementById('modal-passwords').classList.add('open');
+}
+function forceRefresh() {
+  despesas = DB.get('sc_despesas');
+  entradas = DB.get('sc_entradas');
+  metas    = DB.get('sc_metas', []);
+  renderDespList(); renderDespTable(); renderCatSummary();
+  renderEntrList(); renderEntrTable(); renderMetas(); renderHistorico();
+  renderFixas(); renderContasSaldos(); renderInvestimentosValues();
+  updateDashCards(); updateEntrCards(); updateResumoCards();
+  updateCharts(); renderAlerts(); updateSaudeFinanceira();
+  const curMes = document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7);
+  updateDailyAnalysis(curMes);
+  alert('✅ Dados atualizados!');
+}
+
 // ============================================================
 // INIT
 // ============================================================
@@ -3939,7 +4167,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateDashCards();
   updateEntrCards();
   updateResumoCards();
-  updateDailyAnalysis('2026-06');
+  const _curMes = new Date().toISOString().slice(0,7);
+  updateDailyAnalysis(_curMes);
+  updateCharts();
+  renderAlerts();
+  updateSaudeFinanceira();
   // init relatórios default dates
   const today = new Date().toISOString().split('T')[0];
   const firstDay = today.slice(0,7) + '-01';
