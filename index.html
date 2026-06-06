@@ -618,6 +618,9 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 .tr-dre td { background: var(--navy) !important; color: white; font-weight: 700; }
 .tr-dre td:first-child { color: var(--gold); background: var(--navy) !important; }
 .tr-caixa td { background: rgba(201,162,39,0.1) !important; font-weight: 700; }
+.tr-sub td:first-child { padding-left: 24px; font-size: 11px; color: #666; }
+.tr-sub td { font-size: 11px; opacity: 0.85; }
+.tr-cred td { color: #7F77DD !important; font-style: italic; }
 .tr-caixa td:first-child { color: #7a5f00; background: #FBF8EE !important; }
 .tr-cripto td:first-child { color: #6B3FA0; background: #F8F5FF !important; padding-left: 18px; }
 .tr-cripto td { background: rgba(201,160,255,0.06) !important; }
@@ -896,29 +899,29 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
     <div class="card-dark">
       <div class="card-label">Entradas mês</div>
-      <div class="card-value text-gold" id="d-entradas">€ —</div>
+      <div class="card-value text-gold" id="d-entradas" onclick="showDrillDown('entr')" style="cursor:pointer;">€ —</div>
       <div class="card-sub">Jun/2026</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Despesas mês</div>
-      <div class="card-value text-danger" id="d-despesas">€ —</div>
+      <div class="card-value text-danger" id="d-despesas" onclick="showDrillDown('desp')" style="cursor:pointer;">€ —</div>
       <div class="card-sub">Jun/2026</div>
     </div>
   </div>
   <div class="cards-row">
     <div class="card-dark">
       <div class="card-label">Patrimônio</div>
-      <div class="card-value text-gold" id="d-patrim-brl">R$ —</div>
+      <div class="card-value text-gold" id="d-patrim-brl" onclick="showDrillDown('patrimonio')" style="cursor:pointer;">R$ —</div>
       <div class="card-sub" id="d-patrim-eur">≈ € —</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Sobra mês</div>
-      <div class="card-value text-eur" id="d-sobra">€ —</div>
+      <div class="card-value text-eur" id="d-sobra" onclick="showDrillDown('sobra')" style="cursor:pointer;">€ —</div>
       <div class="card-sub">DRE Jun/2026</div>
     </div>
     <div class="card-dark">
       <div class="card-label">Acumulado 2026</div>
-      <div class="card-value text-gold" id="d-rendimento">+ R$ —</div>
+      <div class="card-value text-gold" id="d-rendimento" onclick="showDrillDown('acumulado')" style="cursor:pointer;">+ R$ —</div>
       <div class="card-sub">Histórico 2024</div>
     </div>
   </div>
@@ -1041,25 +1044,6 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <canvas id="resumoEvolChart" height="130"></canvas>
   </div>
 
-  <div class="section-title">Importar extrato</div>
-  <div class="card-white mb12" style="padding:14px;">
-    <div style="font-size:12px;color:#555;margin-bottom:10px;">Importe extratos bancários para alimentar automaticamente as despesas e entradas.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <label style="flex:1;min-width:120px;">
-        <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="handleImport(this,'pdf')">
-        <div style="text-align:center;padding:12px;border:1.5px dashed var(--gold);border-radius:8px;cursor:pointer;font-size:12px;color:var(--gold);font-weight:600;">
-          📄 PDF extrato
-        </div>
-      </label>
-      <label style="flex:1;min-width:120px;">
-        <input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleImport(this,'xlsx')">
-        <div style="text-align:center;padding:12px;border:1.5px dashed var(--brl-c);border-radius:8px;cursor:pointer;font-size:12px;color:var(--brl-c);font-weight:600;">
-          📊 Excel / CSV
-        </div>
-      </label>
-    </div>
-    <div id="import-status" style="margin-top:8px;font-size:11px;color:#888;text-align:center;"></div>
-  </div>
 </div>
 
 <!-- ==================== DESPESAS ==================== -->
@@ -1106,7 +1090,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           </div>
         </div>
       </div>
-      <div class="fg">
+      <div class="fg" id="desp-cat-wrap">
         <div class="flabel">Categoria</div>
         <select class="finput" id="desp-categoria">
           <option value="alimentacao">Alimentação (Food)</option>
@@ -1139,6 +1123,15 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <div class="pill p-var" id="dp-var" onclick="setTipo('var')">⚡ Variável (esporádica)</div>
         </div>
         <div class="tipo-hint fixa" id="desp-tipo-hint">Despesa que se repete todo mês — ex: mútuo, condomínio, assinatura</div>
+      </div>
+      <div class="fg full" id="desp-pagamento-wrap">
+        <div class="flabel">Tipo de pagamento</div>
+        <div class="pill-row mb8">
+          <div class="pill p-eur active" id="dp-pag-deb" onclick="setDespPagamento('debito')">💳 Débito</div>
+          <div class="pill" id="dp-pag-cred" onclick="setDespPagamento('credito')">🪙 Crédito</div>
+          <div class="pill" id="dp-pag-fat" onclick="setDespPagamento('fatura')">📄 Fatura CC</div>
+        </div>
+        <div id="desp-pag-hint" style="font-size:11px;color:#888;margin-top:-4px;margin-bottom:4px;">Débito — sai do caixa agora</div>
       </div>
       <div class="fg full">
         <div class="flabel">Descrição / motivação</div>
@@ -1344,12 +1337,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="fg">
         <div class="flabel">Conta destino</div>
         <select class="finput" id="entr-conta">
-          <option>Unicredit (Buddy)</option>
-          <option>MPS</option>
-          <option>Itaú Personnalité</option>
-          <option>XP</option>
-          <option>Nubank</option>
-          <option>Bradesco</option>
+          <option value="">Carregando contas...</option>
         </select>
       </div>
       <div class="fg full">
@@ -1535,11 +1523,11 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="ind-card"><div class="ind-name">EUR/BRL</div><div class="ind-val" id="inv-eurbrl">6,18</div><div class="ind-delta" style="color:var(--eur-c);">▲ ao vivo</div></div>
   </div>
 
-  <div class="section-title">🇧🇷 Carteira Brasil — XP Investimentos</div>
+  <div class="section-title">🇧🇷 Carteira Brasil</div>
   <div class="port-card">
     <div class="port-header">
       <span style="font-size:18px;">🇧🇷</span>
-      <span class="fw7 fs13">XP — CC 8019065</span>
+      <span class="fw7 fs13">🇧🇷 Carteira Brasil</span>
       <div class="port-total text-brl" id="inv-xp-total">R$ 0</div>
     </div>
     <div class="port-row">
@@ -1843,6 +1831,25 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ==================== RELATÓRIOS ==================== -->
 <div class="tab-content" id="tab-relatorios">
+  <div class="section-title">Importar extrato</div>
+  <div class="card-white mb12" style="padding:14px;">
+    <div style="font-size:12px;color:#555;margin-bottom:10px;">Importe extratos bancários para alimentar automaticamente as despesas e entradas.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <label style="flex:1;min-width:120px;">
+        <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="handleImport(this,'pdf')">
+        <div style="text-align:center;padding:12px;border:1.5px dashed var(--gold);border-radius:8px;cursor:pointer;font-size:12px;color:var(--gold);font-weight:600;">
+          📄 PDF extrato
+        </div>
+      </label>
+      <label style="flex:1;min-width:120px;">
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleImport(this,'xlsx')">
+        <div style="text-align:center;padding:12px;border:1.5px dashed var(--brl-c);border-radius:8px;cursor:pointer;font-size:12px;color:var(--brl-c);font-weight:600;">
+          📊 Excel / CSV
+        </div>
+      </label>
+    </div>
+    <div id="import-status" style="margin-top:8px;font-size:11px;color:#888;text-align:center;"></div>
+  </div>
   <div class="section-title">Exportar relatório</div>
   <div class="rel-form">
     <div class="form-grid">
@@ -2460,6 +2467,7 @@ let entradas = DB.get('sc_entradas');
 let metas = DB.get('sc_metas', []);
 let currentCountry = 'it';
 let despCurrency = 'eur';
+let despPagamento = 'debito'; // debito | credito | fatura
 let despTitular = 'cam';
 let despTipo = 'fix';
 let despConta = '';
@@ -2596,12 +2604,19 @@ function setDespCurrency(c) {
   document.getElementById('desp-contas-eur').style.display = c === 'eur' ? 'flex' : 'none';
   document.getElementById('desp-contas-brl').style.display = c === 'brl' ? 'flex' : 'none';
   despConta = '';
-  // reset active conta pills
-  document.querySelectorAll('#desp-contas-eur .conta-pill, #desp-contas-brl .conta-pill').forEach(p => {
-    p.classList.remove('a-eur','a-brl');
-  });
-  const firstActive = document.getElementById(c === 'eur' ? 'desp-contas-eur' : 'desp-contas-brl').querySelector('.conta-pill');
-  if (firstActive) { firstActive.classList.add(c === 'eur' ? 'a-eur' : 'a-brl'); despConta = firstActive.textContent; }
+  // Rebuild conta pills dynamically from getContasArr()
+  const contasDiv = document.getElementById(c === 'eur' ? 'desp-contas-eur' : 'desp-contas-brl');
+  const contas = getContasArr().filter(ct => ct.moeda === c);
+  const cls = c === 'eur' ? 'a-eur' : 'a-brl';
+  if (contasDiv && contas.length) {
+    contasDiv.innerHTML = contas.map((ct, i) =>
+      `<div class="conta-pill${i===0?' '+cls:''}" onclick="selectConta(this,'${c}')">${ct.nome}</div>`
+    ).join('') + `<div class="conta-pill" onclick="selectConta(this,'${c}')">Dinheiro</div>`;
+    despConta = contas[0].nome;
+  } else if (contasDiv) {
+    contasDiv.innerHTML = `<div class="conta-pill ${cls}" onclick="selectConta(this,'${c}')">Dinheiro</div>`;
+    despConta = 'Dinheiro';
+  }
 }
 
 function selectConta(el, cur) {
@@ -2609,6 +2624,19 @@ function selectConta(el, cur) {
   group.querySelectorAll('.conta-pill').forEach(p => p.classList.remove('a-eur','a-brl'));
   el.classList.add(cur === 'eur' ? 'a-eur' : 'a-brl');
   despConta = el.textContent;
+}
+
+function setDespPagamento(p) {
+  despPagamento = p;
+  const map = {debito:'deb',credito:'cred',fatura:'fat'};
+  ['deb','cred','fat'].forEach(x => { const e=document.getElementById('dp-pag-'+x); if(e){e.classList.remove('active','p-eur');} });
+  const el = document.getElementById('dp-pag-'+map[p]);
+  if (el) el.classList.add('active','p-eur');
+  const hints = {debito:'Débito — sai do caixa agora (mercado, restaurante, transferência)',credito:'Crédito — compra no cartão, paga depois (não afeta caixa agora)',fatura:'Fatura CC — pagamento da fatura do cartão (sai do caixa)'};
+  const hintEl = document.getElementById('desp-pag-hint');
+  if (hintEl) hintEl.textContent = hints[p] || '';
+  const catWrap = document.getElementById('desp-cat-wrap');
+  if (catWrap) catWrap.style.display = p === 'fatura' ? 'none' : '';
 }
 
 function setTitular(t) {
@@ -2635,7 +2663,7 @@ function saveDespesa() {
   const local = document.getElementById('desp-local').value;
   if (!valor || !data) { alert('Preencha data e valor.'); return; }
   const item = { id: Date.now(), data, valor, moeda: despCurrency, categoria: cat,
-    desc, local, titular: despTitular, tipo: despTipo, conta: despConta };
+    desc, local, titular: despTitular, tipo: despTipo, conta: despConta, pagamento: despPagamento };
   despesas.push(item);
   DB.set('sc_despesas', despesas);
   // track upload history
@@ -2669,6 +2697,8 @@ function renderDespList() {
     const titCol = item.titular === 'cam' ? 'var(--camila)' : item.titular === 'ayr' ? 'var(--ayrton)' : '#aaa';
     const titName = item.titular === 'cam' ? 'Camila' : item.titular === 'ayr' ? 'Ayrton' : 'Conjunto';
     const tipoLabel = item.tipo === 'fix' ? '🔁 Fixa' : '⚡ Variável';
+    const pagLabel = item.pagamento === 'credito' ? '🪙 Crédito' : item.pagamento === 'fatura' ? '📄 Fatura' : '💳 Débito';
+    const pagColor = item.pagamento === 'credito' ? '#7F77DD' : item.pagamento === 'fatura' ? '#EF9F27' : '';
     div.innerHTML = '<div class="list-dot" style="background:'+col+';"></div><div class="list-info"><div class="list-desc">'+(item.desc||item.categoria)+'</div><div class="list-sub">'+item.data+' · '+item.conta+' · <span style="color:'+titCol+';">'+titName+'</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"><div class="list-badge '+(item.tipo==='fix'?'badge-fix':'badge-var')+'">'+tipoLabel+'</div><div class="list-val neg">- '+sym+' '+item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
     list.appendChild(div);
   });
@@ -2702,6 +2732,13 @@ function setEntrCurrency(c, el) {
   document.querySelectorAll('#entr-form .pill.p-eur, #entr-form .pill.p-brl').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('entr-symbol').textContent = c === 'eur' ? '€' : 'R$';
+  // Rebuild conta select dynamically
+  const sel = document.getElementById('entr-conta');
+  if (sel) {
+    const contas = getContasArr().filter(ct => ct.moeda === c);
+    sel.innerHTML = contas.map(ct => `<option value="${ct.nome}">${ct.nome}</option>`).join('');
+    if (!contas.length) sel.innerHTML = '<option value="Dinheiro">Dinheiro</option>';
+  }
 }
 function setEntrTitular(t) {
   entrTitular = t;
@@ -3156,7 +3193,10 @@ const DRE_ROWS = [
   { tipo:'+', desc:'Outros', cls:'tr-in', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
   { tipo:'-', desc:'SAÍDAS', cls:'tr-out-total', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
   { tipo:'-', desc:'Fixas', cls:'tr-out', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
-  { tipo:'-', desc:'Variáveis', cls:'tr-out', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'-', desc:'Variáveis (Déb+Fat)', cls:'tr-out', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'-', desc:'  ↳ Fatura CC', cls:'tr-out tr-sub', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'-', desc:'  ↳ Débito', cls:'tr-out tr-sub', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
+  { tipo:'~', desc:'  ↳ Crédito (CC)', cls:'tr-out tr-sub tr-cred', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
   { tipo:'=', desc:'DRE (resultado)', cls:'tr-dre', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:0, pct:'—%' },
   { tipo:'€', desc:'Caixa final', cls:'tr-caixa', vals:[0,0,0,0,0,0,0,0,0,0,0,0], tot:null, pct:null },
 ];
@@ -3178,6 +3218,8 @@ function buildDRETable() {
       if (r.cls === 'tr-dre') {
         cls += v >= 0 ? ' dre-pos' : ' dre-neg';
         display = (v >= 0 ? '+' : '-') + ' ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+      } else if (r.tipo === '~') {
+        display = v > 0 ? '~ ' + Math.abs(Math.round(v)).toLocaleString('pt-BR') : '—';
       } else if (r.tipo === '-') {
         display = '- ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
       }
@@ -3941,15 +3983,37 @@ function showDrillDown(tipo) {
   const fx = fxRates.EURBRL || 6.18;
 
   if (tipo === 'caixa') {
-    const inv = DB.get('sc_investimentos', {});
-    const unicredit = inv.unicredit ?? 2238;
-    const mps       = inv.mps       ?? 1625;
+    const contas = getContasArr();
+    const eurContas = contas.filter(c => c.moeda === 'eur');
+    const brlContas = contas.filter(c => c.moeda === 'brl');
     title.textContent = '💰 Caixa Total — Distribuição';
-    body.innerHTML = '<div style="padding:12px 0;">'
-      + drillRow('Unicredit (Buddy)', '€ '+unicredit.toLocaleString('pt-BR'), 'var(--eur-c)')
-      + drillRow('MPS (Banca)', '€ '+mps.toLocaleString('pt-BR'), 'var(--info)')
-      + drillRow('Total IT', '€ '+(unicredit+mps).toLocaleString('pt-BR'), 'var(--gold)', true)
-      + '</div>';
+    let html = '<div style="padding:12px 0;">';
+    if (eurContas.length) {
+      eurContas.forEach(c => {
+        const te = (typeof entradas!=='undefined'?entradas:[]).filter(e=>e.moeda==='eur'&&c.dataRef&&e.data>=c.dataRef).reduce((s,e)=>s+e.valor,0);
+        const td = (typeof despesas!=='undefined'?despesas:[]).filter(d=>d.moeda==='eur'&&c.dataRef&&d.data>=c.dataRef).reduce((s,d)=>s+d.valor,0);
+        const sc = (c.saldo||0) + (c.dataRef ? te-td : 0);
+        html += drillRow(c.nome, '€ '+sc.toLocaleString('pt-BR',{minimumFractionDigits:2}), c.cor||'var(--eur-c)');
+      });
+      const totEur = getContasSaldoCalc('eur');
+      html += drillRow('Total EUR', '€ '+totEur.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
+    }
+    if (brlContas.length) {
+      if (eurContas.length) html += '<div style="height:6px;"></div>';
+      brlContas.forEach(c => {
+        const te = (typeof entradas!=='undefined'?entradas:[]).filter(e=>e.moeda==='brl'&&c.dataRef&&e.data>=c.dataRef).reduce((s,e)=>s+e.valor,0);
+        const td = (typeof despesas!=='undefined'?despesas:[]).filter(d=>d.moeda==='brl'&&c.dataRef&&d.data>=c.dataRef).reduce((s,d)=>s+d.valor,0);
+        const sc = (c.saldo||0) + (c.dataRef ? te-td : 0);
+        html += drillRow(c.nome, 'R$ '+sc.toLocaleString('pt-BR',{minimumFractionDigits:2}), c.cor||'var(--brl-c)');
+      });
+      const totBrl = getContasSaldoCalc('brl');
+      html += drillRow('Total BRL', 'R$ '+totBrl.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
+    }
+    if (!eurContas.length && !brlContas.length) {
+      html += '<div style="text-align:center;color:#aaa;padding:16px;">Nenhuma conta cadastrada.<br>Adicione contas na aba Resumo.</div>';
+    }
+    html += '</div>';
+    body.innerHTML = html;
   } else if (tipo === 'desp') {
     const mes = new Date().toISOString().slice(0,7);
     const thisMonth = despesas.filter(d => d.data.startsWith(mes));
@@ -3974,18 +4038,55 @@ function showDrillDown(tipo) {
       + (byCon ? drillRow('Conjunto', '€ '+byCon.toLocaleString('pt-BR',{minimumFractionDigits:2}), '#aaa') : '')
       + drillRow('Total', '€ '+(byCam+byAyr+byCon).toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true)
       + '</div>';
+  } else if (tipo === 'sobra') {
+    const mes = new Date().toISOString().slice(0,7);
+    const mesLabel = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+    const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
+    const sobra = entrMes - despMes;
+    const caixaIT = getContasSaldoCalc('eur');
+    title.textContent = '📊 Sobra do mês — ' + mesLabel;
+    body.innerHTML = '<div style="padding:12px 0;">'
+      + drillRow('Entradas ' + mesLabel, '€ '+entrMes.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--eur-c)')
+      + drillRow('Saídas ' + mesLabel, '- € '+despMes.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--danger)')
+      + drillRow('Resultado DRE', (sobra>=0?'+ ':'')+'€ '+sobra.toLocaleString('pt-BR',{minimumFractionDigits:2}), sobra>=0?'var(--eur-c)':'var(--danger)', true)
+      + '<div style="height:6px;"></div>'
+      + drillRow('Caixa atual (contas EUR)', '€ '+caixaIT.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)')
+      + '</div>';
+  } else if (tipo === 'acumulado') {
+    const now2 = new Date();
+    const yr2 = now2.getFullYear();
+    const curMes2 = now2.getMonth();
+    const MESES2 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    title.textContent = '📈 Acumulado ' + yr2;
+    let totalAcum = 0;
+    let dreRows = '';
+    for (let i = 0; i <= curMes2; i++) {
+      const mk = `${yr2}-${String(i+1).padStart(2,'0')}`;
+      const e2 = entradas.filter(x=>x.data.startsWith(mk)&&x.moeda==='eur').reduce((s,x)=>s+x.valor,0);
+      const d2 = despesas.filter(x=>x.data.startsWith(mk)&&x.moeda==='eur').reduce((s,x)=>s+x.valor,0);
+      const res2 = e2 - d2;
+      totalAcum += res2;
+      dreRows += drillRow(MESES2[i]+'/'+yr2, (res2>=0?'+ ':'')+'€ '+res2.toLocaleString('pt-BR',{minimumFractionDigits:2}), res2>=0?'var(--eur-c)':'var(--danger)');
+    }
+    dreRows += drillRow('Total acumulado', (totalAcum>=0?'+ ':'')+'€ '+totalAcum.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
+    body.innerHTML = '<div style="padding:12px 0;">'+dreRows+'</div>';
   } else if (tipo === 'patrimonio') {
     const inv = DB.get('sc_investimentos', {});
-    const xp = inv.xp ?? 148400;
-    const imovelBR = inv.imovelBr ?? 600000;
-    const imovelIT = inv.imovelIt ?? 340000;
-    const caixaIT = (inv.unicredit??2238) + (inv.mps??1625);
+    const fx2 = fxRates.EURBRL || 6.18;
+    const xp=inv.xp||0, xpRf=inv.xpRf||0, xpFundo=inv.xpFundo||0, xpAcoes=inv.xpAcoes||0, xpCripto=inv.xpCripto||0;
+    const xpTotal = (xpRf+xpFundo+xpAcoes+xpCripto) || xp;
+    const imovelBR = inv.imovelBr||0, imovelIT = inv.imovelIt||0;
+    const caixaIT = getContasSaldoCalc('eur'), caixaBR = getContasSaldoCalc('brl');
+    const total = imovelBR + xpTotal + caixaBR + (imovelIT*fx2) + (caixaIT*fx2);
     title.textContent = '🏦 Patrimônio — Distribuição';
     body.innerHTML = '<div style="padding:12px 0;">'
-      + drillRow('XP Investimentos', 'R$ '+xp.toLocaleString('pt-BR'), '#1D9E75')
-      + drillRow('Imóvel Brasil', 'R$ '+imovelBR.toLocaleString('pt-BR'), '#C9A227')
-      + drillRow('Imóvel Itália', '€ '+imovelIT.toLocaleString('pt-BR'), 'var(--eur-c)')
-      + drillRow('Caixa Itália', '€ '+caixaIT.toLocaleString('pt-BR'), 'var(--info)')
+      + drillRow('🇧🇷 Imóvel Brasil', 'R$ '+Math.round(imovelBR).toLocaleString('pt-BR'), '#C9A227')
+      + drillRow('🇧🇷 XP Investimentos', 'R$ '+Math.round(xpTotal).toLocaleString('pt-BR'), '#1D9E75')
+      + drillRow('🇧🇷 Caixa Brasil', 'R$ '+Math.round(caixaBR).toLocaleString('pt-BR'), 'var(--brl-c)')
+      + drillRow('🇮🇹 Imóvel Itália', '€ '+Math.round(imovelIT).toLocaleString('pt-BR'), 'var(--eur-c)')
+      + drillRow('🇮🇹 Caixa Itália', '€ '+Math.round(caixaIT).toLocaleString('pt-BR'), 'var(--info)')
+      + drillRow('Total (em BRL)', 'R$ '+Math.round(total).toLocaleString('pt-BR'), 'var(--gold)', true)
       + '</div>';
   }
   modal.classList.add('open');
@@ -4244,7 +4345,8 @@ function updateCharts() {
   const mKeys = Array.from({length:12}, (_, i) => `${yr}-${String(i+1).padStart(2,'0')}`);
   const curIdx = now.getMonth();
   const entrByMo = mKeys.map(m => entradas.filter(e => e.data && e.data.startsWith(m) && e.moeda === cfMoeda).reduce((s, e) => s + e.valor, 0));
-  const despByMo = mKeys.map(m => despesas.filter(d => d.data && d.data.startsWith(m) && d.moeda === cfMoeda).reduce((s, d) => s + d.valor, 0));
+  // Excluir crédito do fluxo de caixa (crédito não afeta caixa no mês da compra)
+  const despByMo = mKeys.map(m => despesas.filter(d => d.data && d.data.startsWith(m) && d.moeda === cfMoeda && d.pagamento !== 'credito').reduce((s, d) => s + d.valor, 0));
   const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
 
   cfBarLine('miniCfChart', entrByMo.slice(0,6), despByMo.slice(0,6), dreByMo.slice(0,6), MESES_SHORT.slice(0,6), Math.min(curIdx, 5));
@@ -4258,18 +4360,47 @@ function updateCharts() {
 function updateDRETable(entrByMo, despByMo, curIdx) {
   const tbody = document.getElementById('dre-body');
   if (!tbody) return;
-  // Update DRE_ROWS arrays in-place (arrays are mutable even inside const)
+  // Update DRE_ROWS vals in-place
   const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === 'eur');
   const totFixas = fixas.reduce((s, f) => s + f.valor, 0);
   const fixasByMo = Array.from({length:12}, (_, i) => i <= curIdx ? totFixas : 0);
   const varByMo = despByMo.map((d, i) => Math.max(0, d - fixasByMo[i]));
   const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
+  const yr2 = new Date().getFullYear();
+  const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
+  const cfMoedaDRE = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
+  const fatByMo  = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='fatura').reduce((s,d)=>s+d.valor,0));
+  const debByMo  = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&(d.pagamento==='debito'||!d.pagamento)).reduce((s,d)=>s+d.valor,0));
+  const credByMo = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='credito').reduce((s,d)=>s+d.valor,0));
+  const varRealByMo = fatByMo.map((f,i) => f + debByMo[i]);
+  const dreByMo2 = entrByMo.map((e, i) => e - fixasByMo[i] - varRealByMo[i]);
   DRE_ROWS[1].vals = entrByMo;
-  DRE_ROWS[5].vals = despByMo;
+  DRE_ROWS[5].vals = varByMo.map((_,i)=>fixasByMo[i]+varRealByMo[i]);
   DRE_ROWS[6].vals = fixasByMo;
-  DRE_ROWS[7].vals = varByMo;
-  DRE_ROWS[8].vals = dreByMo;
-  // Rebuild table
+  DRE_ROWS[7].vals = varRealByMo;
+  DRE_ROWS[8].vals = fatByMo;
+  DRE_ROWS[9].vals = debByMo;
+  DRE_ROWS[10].vals = credByMo;
+  DRE_ROWS[11].vals = dreByMo2;
+  const realized = vals => vals.slice(0, curIdx+1).reduce((s,v)=>s+(v||0),0);
+  const entrTot = realized(entrByMo);
+  DRE_ROWS[1].tot = Math.round(entrTot);
+  DRE_ROWS[5].tot = Math.round(realized(DRE_ROWS[5].vals));
+  DRE_ROWS[6].tot = Math.round(realized(fixasByMo));
+  DRE_ROWS[7].tot = Math.round(realized(varRealByMo));
+  DRE_ROWS[8].tot = Math.round(realized(fatByMo));
+  DRE_ROWS[9].tot = Math.round(realized(debByMo));
+  DRE_ROWS[10].tot = Math.round(realized(credByMo));
+  DRE_ROWS[11].tot = Math.round(realized(dreByMo2));
+  const pct = (v) => entrTot > 0 ? Math.round(Math.abs(v)/entrTot*100)+'%' : '—%';
+  DRE_ROWS[1].pct = '100%';
+  DRE_ROWS[5].pct = pct(DRE_ROWS[5].tot);
+  DRE_ROWS[6].pct = pct(DRE_ROWS[6].tot);
+  DRE_ROWS[7].pct = pct(DRE_ROWS[7].tot);
+  DRE_ROWS[8].pct = pct(DRE_ROWS[8].tot);
+  DRE_ROWS[9].pct = pct(DRE_ROWS[9].tot);
+  DRE_ROWS[10].pct = pct(DRE_ROWS[10].tot);
+  DRE_ROWS[11].pct = DRE_ROWS[11].tot >= 0 ? '+'+Math.round(DRE_ROWS[11].tot).toLocaleString('pt-BR') : Math.round(DRE_ROWS[11].tot).toLocaleString('pt-BR');
   tbody.innerHTML = '';
   buildDRETable();
 }
@@ -4400,6 +4531,19 @@ function openPwdModal() {
 function forceRefresh() {
   despesas = DB.get('sc_despesas');
   entradas = DB.get('sc_entradas');
+  // Rebuild dynamic conta pills/select
+  try { setDespCurrency(despCurrency || 'eur'); } catch(e) {}
+  try {
+    const sel = document.getElementById('entr-conta');
+    if (sel) {
+      const entrSym = document.getElementById('entr-symbol');
+      const entrMoeda = entrSym && entrSym.textContent === 'R$' ? 'brl' : 'eur';
+      const contas = getContasArr().filter(ct => ct.moeda === entrMoeda);
+      sel.innerHTML = contas.length
+        ? contas.map(ct => `<option value="${ct.nome}">${ct.nome}</option>`).join('')
+        : '<option value="Dinheiro">Dinheiro</option>';
+    }
+  } catch(e2) {}
   metas    = DB.get('sc_metas', []);
   renderDespList(); renderDespTable(); renderCatSummary();
   renderEntrList(); renderEntrTable(); renderMetas(); renderHistorico();
