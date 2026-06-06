@@ -15,9 +15,15 @@
   z-index: 9999; padding: 32px 24px;
 }
 #login-screen .login-logo {
-  width: 72px; height: 72px; background: #C9A227; border-radius: 50%;
+  width: 100px; height: 100px; margin-bottom: 16px;
+  background: #1A1A2E; border-radius: 20px;
+  border: 1.5px solid rgba(201,162,39,0.4);
   display: flex; align-items: center; justify-content: center;
-  font-size: 36px; margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+#login-screen .login-logo img {
+  width: 84px; height: 84px; object-fit: contain;
 }
 #login-screen h1 {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -74,12 +80,18 @@
 </style>
 <script>
 // ============================================================
-// ACESSO — altere as senhas aqui
+// ACESSO — senhas gerenciadas via app (Configurações ⚙️)
 // ============================================================
 const USERS = {
-  camila: { senha: 'camila2026', nome: 'Camila', cor: 'active-cam' },
-  ayrton: { senha: 'ayrton2026', nome: 'Ayrton', cor: 'active-ayr' },
+  camila: { nome: 'Camila', cor: 'active-cam' },
+  ayrton: { nome: 'Ayrton', cor: 'active-ayr' },
 };
+// Senhas padrão (só usadas na primeira vez — depois ficam no localStorage)
+const _DEFAULT_PWD = { camila: 'camila2026', ayrton: 'ayrton2026' };
+
+function getPwd(u) { return localStorage.getItem('sc_pwd_' + u) || _DEFAULT_PWD[u]; }
+function setPwd(u, pwd) { localStorage.setItem('sc_pwd_' + u, pwd); }
+
 let selectedUser = 'camila';
 
 function selectUser(u) {
@@ -92,16 +104,58 @@ function selectUser(u) {
 
 function doLogin() {
   const input = document.getElementById('login-input').value.trim();
-  const user = USERS[selectedUser];
-  if (input === user.senha) {
+  if (input === getPwd(selectedUser)) {
     sessionStorage.setItem('sc_user', selectedUser);
-    sessionStorage.setItem('sc_nome', user.nome);
+    sessionStorage.setItem('sc_nome', USERS[selectedUser].nome);
     document.getElementById('login-screen').style.display = 'none';
   } else {
     document.getElementById('login-error').textContent = 'Senha incorreta. Tente novamente.';
     document.getElementById('login-input').value = '';
     document.getElementById('login-input').focus();
   }
+}
+
+// ============================================================
+// CONFIGURAÇÕES
+// ============================================================
+function openSettings() {
+  document.getElementById('modal-settings').classList.add('open');
+  const nome = sessionStorage.getItem('sc_nome') || 'Usuário';
+  document.getElementById('settings-user-nome').textContent = nome;
+}
+function closeSettings() {
+  document.getElementById('modal-settings').classList.remove('open');
+}
+function changePwd(user) {
+  const nova  = document.getElementById('settings-pwd-'  + user).value;
+  const conf  = document.getElementById('settings-pwd2-' + user).value;
+  const msg   = document.getElementById('settings-msg-'  + user);
+  if (!nova || nova.length < 4) { msg.style.color='#F07E7E'; msg.textContent='Mínimo 4 caracteres.'; return; }
+  if (nova !== conf) { msg.style.color='#F07E7E'; msg.textContent='Senhas não coincidem.'; return; }
+  setPwd(user, nova);
+  document.getElementById('settings-pwd-'  + user).value = '';
+  document.getElementById('settings-pwd2-' + user).value = '';
+  msg.style.color = '#5DCAA5';
+  msg.textContent = '✅ Senha atualizada!';
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+}
+function resetData() {
+  if (!confirm('⚠️ Isso vai apagar TODAS as despesas, entradas e metas salvas.\n\nTem certeza?')) return;
+  if (!confirm('Confirmar reset completo? Essa ação não pode ser desfeita.')) return;
+  ['sc_despesas','sc_entradas','sc_metas'].forEach(k => localStorage.removeItem(k));
+  despesas = [];
+  entradas = [];
+  metas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
+  DB.set('sc_metas', metas);
+  if(typeof renderDespList==='function') renderDespList();
+  if(typeof renderEntrList==='function') renderEntrList();
+  if(typeof renderMetas==='function') renderMetas();
+  closeSettings();
+  alert('✅ Dados zerados. O app está limpo para começar de novo!');
+}
+function logout() {
+  sessionStorage.clear();
+  location.reload();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -166,12 +220,78 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   display: flex; align-items: center; gap: 8px;
 }
 .logo-icon {
-  width: 28px; height: 28px; background: var(--gold);
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: var(--navy); font-weight: 700;
+  width: 30px; height: 30px; background: #1A1A2E;
+  border-radius: 8px; border: 1px solid rgba(201,162,39,0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--navy); font-weight: 700; overflow: hidden;
 }
+.logo-icon img { width: 26px; height: 26px; object-fit: contain; }
 .logo-text { font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 0.5px; }
 .header-right { display: flex; align-items: center; gap: 8px; }
+/* ---- SETTINGS BUTTON ---- */
+.settings-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.settings-btn:hover { background: rgba(201,162,39,0.2); border-color: var(--gold); color: var(--gold); }
+/* ---- SETTINGS MODAL ---- */
+#modal-settings {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 8888;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+#modal-settings.open { display: flex; }
+.settings-panel {
+  background: #16213E; border-radius: 20px; width: 100%; max-width: 380px;
+  border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
+}
+.settings-header {
+  background: #1A1A2E; padding: 18px 20px; display: flex; align-items: center;
+  justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.settings-title { font-size: 15px; font-weight: 700; color: var(--gold); }
+.settings-close {
+  width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; line-height: 1;
+}
+.settings-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.settings-section { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+.settings-section-title {
+  font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase;
+  letter-spacing: 0.8px; padding: 10px 14px 8px; background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-label { font-size: 13px; color: rgba(255,255,255,0.7); }
+.settings-row-val { font-size: 13px; font-weight: 600; color: var(--gold); }
+.settings-pwd-group { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.settings-pwd-group .flabel { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
+.settings-pwd-group input {
+  width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06); color: white; font-size: 13px; outline: none;
+  box-sizing: border-box; letter-spacing: 1.5px;
+}
+.settings-pwd-group input:focus { border-color: var(--gold); }
+.settings-pwd-btn {
+  padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--gold);
+  background: transparent; color: var(--gold); font-size: 12px; font-weight: 700;
+  cursor: pointer; align-self: flex-end; transition: all 0.15s;
+}
+.settings-pwd-btn:hover { background: var(--gold); color: var(--navy); }
+.settings-msg { font-size: 11px; color: #5DCAA5; min-height: 14px; text-align: right; }
+.settings-action-btn {
+  width: 100%; padding: 11px; border-radius: 10px; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 700; transition: all 0.15s;
+}
+.settings-action-btn.danger { background: rgba(139,26,26,0.3); color: #F07E7E; border: 1.5px solid rgba(240,126,126,0.3); }
+.settings-action-btn.danger:hover { background: rgba(139,26,26,0.5); }
+.settings-action-btn.logout { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.1); }
+.settings-action-btn.logout:hover { background: rgba(255,255,255,0.1); }
 .country-toggle {
   display: flex; gap: 2px; background: rgba(255,255,255,0.08); border-radius: 20px; padding: 2px;
 }
@@ -394,25 +514,26 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;
   white-space: nowrap;
 }
-.dre-table th:first-child { text-align: left; min-width: 150px; position: sticky; left: 0; background: var(--navy); }
+.dre-table th:first-child { text-align: left; min-width: 150px; position: sticky; left: 0; background: var(--navy); z-index: 20; }
 .dre-table th.cur { color: var(--gold); }
 .dre-table td { padding: 6px 8px; text-align: right; white-space: nowrap; border-bottom: 0.5px solid #f0ede6; }
-.dre-table td:first-child { text-align: left; position: sticky; left: 0; font-weight: 500; background: white; z-index:1; }
+/* sticky first column — z-index 10 ensures it stays ABOVE scrolling cells; background must be SOLID (no rgba) */
+.dre-table td:first-child { text-align: left; position: sticky; left: 0; font-weight: 500; background: #ffffff; z-index: 10; }
 .dre-table td.tot { font-weight: 700; border-left: 1px solid #e0ddd6; }
 .dre-table tr:last-child td { border-bottom: none; }
 .tr-saldo td { background: rgba(26,26,46,0.05) !important; font-weight: 700; }
-.tr-saldo td:first-child { color: var(--navy); background: rgba(26,26,46,0.05) !important; }
+.tr-saldo td:first-child { color: var(--navy); background: #F4F4F6 !important; }
 .tr-in-total td { background: rgba(29,158,117,0.08) !important; font-weight: 700; }
-.tr-in-total td:first-child { color: var(--eur-bg); background: rgba(29,158,117,0.08) !important; }
-.tr-in td:first-child { color: #555; background: white; padding-left: 18px; }
+.tr-in-total td:first-child { color: var(--eur-bg); background: #EDF8F5 !important; }
+.tr-in td:first-child { color: #555; background: #ffffff !important; padding-left: 18px; }
 .tr-out-total td { background: rgba(226,75,74,0.08) !important; font-weight: 700; }
-.tr-out-total td:first-child { color: var(--dark-red); background: rgba(226,75,74,0.08) !important; }
-.tr-out td:first-child { color: #666; background: white; padding-left: 18px; }
+.tr-out-total td:first-child { color: var(--dark-red); background: #FDF0F0 !important; }
+.tr-out td:first-child { color: #666; background: #ffffff !important; padding-left: 18px; }
 .tr-dre td { background: var(--navy) !important; color: white; font-weight: 700; }
 .tr-dre td:first-child { color: var(--gold); background: var(--navy) !important; }
 .tr-caixa td { background: rgba(201,162,39,0.1) !important; font-weight: 700; }
-.tr-caixa td:first-child { color: #7a5f00; background: rgba(201,162,39,0.1) !important; }
-.tr-cripto td:first-child { color: #6B3FA0; background: rgba(201,160,255,0.06) !important; padding-left: 18px; }
+.tr-caixa td:first-child { color: #7a5f00; background: #FBF8EE !important; }
+.tr-cripto td:first-child { color: #6B3FA0; background: #F8F5FF !important; padding-left: 18px; }
 .tr-cripto td { background: rgba(201,160,255,0.06) !important; }
 .cell-cur { border-left: 2px solid var(--gold) !important; border-right: 2px solid var(--gold) !important; }
 .dre-pos { color: var(--success) !important; font-weight: 700; }
@@ -535,18 +656,26 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   width: 100%; max-width: 680px;
   background: var(--navy); border-top: 1px solid rgba(255,255,255,0.1);
   z-index: 100;
+  /* scrollable so ALL tabs are reachable */
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  justify-content: flex-start;
 }
+.bottom-nav::-webkit-scrollbar { display: none; }
 @media (max-width: 480px) {
   .bottom-nav { display: flex; }
   .tab-content { padding-bottom: 70px; }
   .nav { display: none; }
 }
 .bn-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 8px 4px 10px; cursor: pointer; gap: 3px;
+  flex: 0 0 auto; min-width: 68px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 8px 10px; cursor: pointer; gap: 3px;
+  scroll-snap-align: start;
 }
 .bn-icon { font-size: 18px; }
-.bn-label { font-size: 9px; color: rgba(255,255,255,0.4); font-weight: 500; }
+.bn-label { font-size: 9px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; }
 .bn-item.active .bn-label { color: var(--gold); }
 .bn-item.active .bn-icon { filter: sepia(1) saturate(5) hue-rotate(5deg); }
 
@@ -604,7 +733,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ===================== LOGIN SCREEN ===================== -->
 <div id="login-screen">
-  <div class="login-logo">🦁</div>
+  <div class="login-logo"><img src="logo.png" alt="Saraiva &amp; Corazza" onerror="this.parentElement.innerHTML='🦁';this.parentElement.style.cssText='width:72px;height:72px;background:#C9A227;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:16px'" /></div>
   <h1>Saraiva &amp; Corazza</h1>
   <p>Controle financeiro familiar</p>
   <div class="login-box">
@@ -625,7 +754,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 <div class="app-header">
   <div class="header-top">
     <div class="logo">
-      <div class="logo-icon">🦁</div>
+      <div class="logo-icon"><img src="logo.png" alt="S&amp;C" onerror="this.parentElement.innerHTML='🦁'" /></div>
       <div class="logo-text">Saraiva &amp; Corazza</div>
     </div>
     <div class="header-right">
@@ -634,6 +763,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <button class="ct-btn" onclick="setCountry('br',this)">🇧🇷</button>
         <button class="ct-btn" onclick="setCountry('gl',this)">🌍</button>
       </div>
+      <button class="settings-btn" onclick="openSettings()" title="Configurações">⚙️</button>
     </div>
   </div>
   <div class="ticker-bar" id="ticker-bar">
@@ -1679,13 +1809,19 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 </main>
 
-<!-- BOTTOM NAV (mobile) -->
+<!-- BOTTOM NAV (mobile) — role para ver todas as abas -->
 <nav class="bottom-nav" id="bottom-nav">
   <div class="bn-item active" onclick="showTab('dashboard',null,this)">
     <div class="bn-icon">🏠</div><div class="bn-label">Dashboard</div>
   </div>
+  <div class="bn-item" onclick="showTab('resumo',null,this)">
+    <div class="bn-icon">📋</div><div class="bn-label">Resumo</div>
+  </div>
   <div class="bn-item" onclick="showTab('despesas',null,this)">
     <div class="bn-icon">💸</div><div class="bn-label">Despesas</div>
+  </div>
+  <div class="bn-item" onclick="showTab('entradas',null,this)">
+    <div class="bn-icon">💰</div><div class="bn-label">Entradas</div>
   </div>
   <div class="bn-item" onclick="showTab('cashflow',null,this)">
     <div class="bn-icon">📊</div><div class="bn-label">Cashflow</div>
@@ -1697,6 +1833,69 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="bn-icon">🎯</div><div class="bn-label">Estratégia</div>
   </div>
 </nav>
+
+<!-- MODAL CONFIGURAÇÕES -->
+<div id="modal-settings" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <div class="settings-title">⚙️ Configurações</div>
+      <button class="settings-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="settings-body">
+
+      <!-- Usuário logado -->
+      <div class="settings-section">
+        <div class="settings-section-title">Sessão atual</div>
+        <div class="settings-row">
+          <div class="settings-row-label">Usuário</div>
+          <div class="settings-row-val" id="settings-user-nome">—</div>
+        </div>
+        <div class="settings-row" style="padding:10px 14px">
+          <button class="settings-action-btn logout" style="margin:0" onclick="logout()">🚪 Sair / trocar usuário</button>
+        </div>
+      </div>
+
+      <!-- Alterar senha Camila -->
+      <div class="settings-section">
+        <div class="settings-section-title">Senha — Camila</div>
+        <div class="settings-pwd-group">
+          <div class="flabel">Nova senha</div>
+          <input type="password" id="settings-pwd-camila" placeholder="Nova senha" autocomplete="new-password" />
+          <div class="flabel">Confirmar senha</div>
+          <input type="password" id="settings-pwd2-camila" placeholder="Repetir senha" autocomplete="new-password" />
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+            <div class="settings-msg" id="settings-msg-camila"></div>
+            <button class="settings-pwd-btn" onclick="changePwd('camila')">Salvar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alterar senha Ayrton -->
+      <div class="settings-section">
+        <div class="settings-section-title">Senha — Ayrton</div>
+        <div class="settings-pwd-group">
+          <div class="flabel">Nova senha</div>
+          <input type="password" id="settings-pwd-ayrton" placeholder="Nova senha" autocomplete="new-password" />
+          <div class="flabel">Confirmar senha</div>
+          <input type="password" id="settings-pwd2-ayrton" placeholder="Repetir senha" autocomplete="new-password" />
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+            <div class="settings-msg" id="settings-msg-ayrton"></div>
+            <button class="settings-pwd-btn" onclick="changePwd('ayrton')">Salvar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zerar dados -->
+      <div class="settings-section">
+        <div class="settings-section-title">Dados</div>
+        <div class="settings-row" style="padding:10px 14px">
+          <button class="settings-action-btn danger" style="margin:0" onclick="resetData()">🗑 Zerar todos os dados</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <!-- MODAL NOVA META -->
 <div class="modal-overlay" id="modal-meta" onclick="if(event.target===this)this.classList.remove('open')">
