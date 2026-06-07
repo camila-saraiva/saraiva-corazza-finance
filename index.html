@@ -3341,8 +3341,7 @@ function initResumoCharts() {
   updateEvolChart();
 }
 function initCfCharts() {
-  cfBarLine('cfMainChart', CF_DATA.entradas, CF_DATA.saidas, CF_DATA.dre, CF_DATA.meses, CF_DATA.curIdx);
-  buildDRETable();
+  updateCharts(); // usa dados reais (fixas, entradas, despesas) em vez do CF_DATA estático
 }
 function initInvestCharts() {
   mkChart('evolChart', {
