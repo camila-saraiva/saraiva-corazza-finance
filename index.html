@@ -142,11 +142,20 @@ function changePwd(user) {
 function resetData() {
   if (!confirm('⚠️ Isso vai apagar TODAS as despesas, entradas e metas salvas.\n\nTem certeza?')) return;
   if (!confirm('Confirmar reset completo? Essa ação não pode ser desfeita.')) return;
-  ['sc_despesas','sc_entradas','sc_metas','sc_hist','sc_investimentos','sc_fixas','sc_contas','sc_financiamentos'].forEach(k => localStorage.removeItem(k));
+  // Zera localStorage E Supabase via DB.set para cada chave
   despesas = [];
   entradas = [];
   metas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
+  DB.set('sc_despesas', []);
+  DB.set('sc_entradas', []);
   DB.set('sc_metas', metas);
+  DB.set('sc_hist', []);
+  DB.set('sc_investimentos', {});
+  DB.set('sc_inv_livre', []);
+  DB.set('sc_fixas', []);
+  DB.set('sc_contas', []);
+  DB.set('sc_financiamentos', []);
+  DB.set('sc_alerts_dismissed', []);
   if(typeof renderDespList==='function') renderDespList();
   if(typeof renderDespTable==='function') renderDespTable();
   if(typeof renderInvLivre==='function') renderInvLivre();
