@@ -148,15 +148,17 @@ async function resetData() {
     sc_inv_livre:[], sc_fixas:[], sc_contas:[], sc_financiamentos:[], sc_alerts_dismissed:[]
   };
   _setSyncBadge('sync', '🔄 zerando...');
-  // 1. Aguardar upserts no Supabase (mesmo mecanismo que salva dados normais)
+  // 1. Aguardar upserts no Supabase
+  const resetTs = new Date().toISOString();
   const sb = _getSB();
   if (sb) {
-    const rows = Object.entries(SC_EMPTY).map(([k,v]) => ({key:k, value:v, updated_at: new Date().toISOString()}));
-    rows.push({key:'sc_metas', value:defaultMetas, updated_at: new Date().toISOString()});
+    const rows = Object.entries(SC_EMPTY).map(([k,v]) => ({key:k, value:v, updated_at: resetTs}));
+    rows.push({key:'sc_metas', value:defaultMetas, updated_at: resetTs});
     await Promise.all(rows.map(row => sb.from('sc_data').upsert(row, {onConflict:'key'})));
   }
-  // 2. Limpar localStorage após Supabase confirmado
+  // 2. Limpar localStorage e atualizar timestamp de sincronia
   Object.keys(SC_EMPTY).forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('sc_meta_updated_at', resetTs);
   // 3. Resetar variáveis em memória
   despesas = [];
   entradas = [];
@@ -2562,22 +2564,38 @@ const DB = {
     const sb = _getSB();
     if (!sb) return;
     _setSyncBadge('sync', '🔄 sync...');
+    const writeTs = new Date().toISOString();
     sb.from('sc_data')
-      .upsert({ key: k, value: v, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+      .upsert({ key: k, value: v, updated_at: writeTs }, { onConflict: 'key' })
       .then(({ error }) => {
         if (error) { console.warn('Supabase push error:', error.message); _setSyncBadge('err', '❌ erro sync'); }
-        else { _setSyncBadge('ok', '✅ sincronizado'); setTimeout(() => _setSyncBadge('ok', '⚡ ao vivo'), 3000); }
+        else {
+          // Marca timestamp da última escrita local confirmada no Supabase
+          localStorage.setItem('sc_meta_updated_at', writeTs);
+          _setSyncBadge('ok', '✅ sincronizado');
+          setTimeout(() => _setSyncBadge('ok', '⚡ ao vivo'), 3000);
+        }
       });
   },
   loadFromCloud: async () => {
     const sb = _getSB();
     if (!sb) return false;
-    _setSyncBadge('sync', '🔄 carregando...');
-    const { data, error } = await sb.from('sc_data').select('key,value');
+    _setSyncBadge('sync', '🔄 verificando...');
+    const { data, error } = await sb.from('sc_data').select('key,value,updated_at');
     if (error || !data || !data.length) { _setSyncBadge('off', '⚡ offline'); return false; }
+    // Compara timestamp do Supabase com o da última escrita local confirmada
+    const cloudMaxTs = data.reduce((m, r) => (r.updated_at||'') > m ? (r.updated_at||'') : m, '');
+    const localTs = localStorage.getItem('sc_meta_updated_at') || '';
+    if (cloudMaxTs && localTs && cloudMaxTs <= localTs) {
+      // localStorage é igual ou mais novo — não sobrescrever
+      _setSyncBadge('ok', '⚡ ao vivo');
+      return false;
+    }
+    // Supabase é mais novo ou sem timestamp local (primeiro acesso / outro dispositivo) — carregar
     data.forEach(({ key, value }) => {
       localStorage.setItem(key, JSON.stringify(value));
     });
+    if (cloudMaxTs) localStorage.setItem('sc_meta_updated_at', cloudMaxTs);
     _setSyncBadge('ok', '⚡ ao vivo');
     return true;
   },
