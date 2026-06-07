@@ -4714,8 +4714,9 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const yr2 = new Date().getFullYear();
   const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
   const cfMoedaDRE = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
-  // Helper: compare YYYY-MM strings numerically (handles any year digit count)
-  const cmpYM = (a, b) => { const [ay,am] = a.split('-').map(Number); const [by,bm] = b.split('-').map(Number); return ay !== by ? ay-by : am-bm; };
+  // Helper: normalize any date to YYYY-MM (handles YYYY-MM, DD/MM/YYYY, YYYY-MM-DD)
+  const normYM = d => { if (!d) return ''; if (d.includes('/')) { const p=d.split('/'); return p.length===3?p[2]+'-'+p[1].padStart(2,'0'):''; } return d.slice(0,7); };
+  const cmpYM = (a, b) => { const na=normYM(a),nb=normYM(b); const [ay,am]=na.split('-').map(Number); const [by,bm]=nb.split('-').map(Number); return ay!==by?ay-by:am-bm; };
   // Fixas: respeita dataInicio/dataFim para cada mês (inclusive futuros)
   const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === cfMoedaDRE);
   const fixasByMo = mKeys2.map(moMes => {
@@ -4808,7 +4809,8 @@ function showDRETdDetail(rowIdx, moIdx) {
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem entradas em '+mesLabel+'.</div>';
     else { items.forEach(e=>{ dhtml+=drillRow(e.desc||e.tipo||'Entrada', fmtV(e.valor), 'var(--eur-c)'); }); dhtml+=drillRow('Total', fmtV(items.reduce((s,e)=>s+e.valor,0)), 'var(--gold)', true); }
   } else if (rowIdx === 6) { // Fixas
-    const cmpYM2 = (a,b)=>{ const [ay,am]=a.split('-').map(Number); const [by,bm]=b.split('-').map(Number); return ay!==by?ay-by:am-bm; };
+    const normYM2 = d=>{ if(!d)return''; if(d.includes('/')){ const p=d.split('/'); return p.length===3?p[2]+'-'+p[1].padStart(2,'0'):''; } return d.slice(0,7); };
+    const cmpYM2 = (a,b)=>{ const na=normYM2(a),nb=normYM2(b); const [ay,am]=na.split('-').map(Number); const [by,bm]=nb.split('-').map(Number); return ay!==by?ay-by:am-bm; };
     const fixasList = DB.get('sc_fixas',[]).filter(f=>{
       const mk7 = mKey.slice(0,7);
       const startOk = !f.dataInicio||cmpYM2(f.dataInicio,mk7)<=0;
