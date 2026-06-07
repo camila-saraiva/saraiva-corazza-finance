@@ -1526,30 +1526,27 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ==================== INVESTIMENTOS ==================== -->
 <div class="tab-content" id="tab-investimentos">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div class="section-title" style="margin:0;border:none;padding:0;">Patrimônio &amp; Investimentos</div>
-    <button class="btn-secondary" onclick="openInvModal()">✏️ Editar valores</button>
-  </div>
+  <div class="section-title" style="margin-bottom:8px;">Patrimônio &amp; Investimentos</div>
   <div class="patrim-card">
     <div class="patrim-item" onclick="showDrillDown('patrimonio')" style="cursor:pointer;">
       <div class="patrim-lbl">Patrimônio total</div>
-      <div class="patrim-val text-gold" id="inv-total-brl">R$ 748.400</div>
+      <div class="patrim-val text-gold" id="inv-total-brl">R$ —</div>
       <div class="patrim-note">Imóveis + investimentos + caixa ↗</div>
     </div>
     <div class="patrim-item">
       <div class="patrim-lbl">Em Euro (ref.)</div>
-      <div class="patrim-val text-eur" id="inv-total-eur">≈ € 121.100</div>
-      <div class="patrim-note">EUR/BRL <span id="inv-fx">6,18</span></div>
+      <div class="patrim-val text-eur" id="inv-total-eur">≈ € —</div>
+      <div class="patrim-note">EUR/BRL <span id="inv-fx">—</span></div>
     </div>
     <div class="patrim-item">
       <div class="patrim-lbl">Rendimento mês</div>
-      <div class="patrim-val text-cam">R$ +1.240</div>
+      <div class="patrim-val text-cam" id="inv-rend-mes">—</div>
       <div class="patrim-note">Carteira financeira</div>
     </div>
     <div class="patrim-item">
       <div class="patrim-lbl">Rentab. anual</div>
-      <div class="patrim-val text-eur">+9,8%</div>
-      <div class="patrim-note">vs SELIC 13,25%</div>
+      <div class="patrim-val text-eur" id="inv-rentab-anual">—</div>
+      <div class="patrim-note">vs SELIC <span id="inv-selic-ref">13,25%</span></div>
     </div>
   </div>
 
@@ -4437,6 +4434,19 @@ function renderInvestimentosValues() {
   const fB = (v) => 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   set('inv-total-brl',   total>0?fB(Math.round(total)):'R$ —');
   set('inv-total-eur',   total>0?'≈ € '+Math.round(total/fx).toLocaleString('pt-BR'):'≈ € —');
+  set('inv-fx', fx.toFixed(2));
+  // Rendimento mensal e rentabilidade anual — calculados dos investimentos livres
+  const invLivreAll = DB.get('sc_inv_livre', []);
+  const toB = i => i.moeda==='brl' ? i.valor : i.moeda==='eur' ? i.valor*fx : i.valor*(fxRates.USDBRL||5.1);
+  const rendMesBRL = invLivreAll.reduce((s,i) => s + toB(i) * ((i.taxa||0)/100) / 12, 0);
+  const totalCartBRL = invLivreAll.reduce((s,i) => s + toB(i), 0);
+  const rentabAnual = totalCartBRL > 0
+    ? invLivreAll.reduce((s,i) => s + toB(i) * (i.taxa||0), 0) / totalCartBRL
+    : 0;
+  const selic = 13.25;
+  set('inv-rend-mes', rendMesBRL > 0 ? 'R$ +' + Math.round(rendMesBRL).toLocaleString('pt-BR') : '—');
+  set('inv-rentab-anual', rentabAnual > 0 ? (rentabAnual >= selic ? '+' : '') + rentabAnual.toFixed(1) + '%' : '—');
+  set('inv-selic-ref', selic.toFixed(2) + '%');
   set('inv-caixa-total', fE(caixaIT));
   set('inv-xp-total',    xpTotal>0?fB(xpTotal):'R$ 0');
   set('inv-xp-rf-val',   fB(xpRf));
