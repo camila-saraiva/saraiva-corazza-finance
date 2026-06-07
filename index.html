@@ -2553,9 +2553,6 @@ function _setSyncBadge(state, label) {
   el.textContent = label;
 }
 
-// Rastreia timestamps das nossas próprias escritas para ignorar no realtime
-const _ourWrites = new Set();
-
 const DB = {
   get: (k, def=[]) => {
     try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; }
@@ -2568,11 +2565,8 @@ const DB = {
     const sb = _getSB();
     if (!sb) return;
     _setSyncBadge('sync', '🔄 sync...');
-    const writeTs = new Date().toISOString();
-    _ourWrites.add(k + '|' + writeTs);
-    setTimeout(() => _ourWrites.delete(k + '|' + writeTs), 10000); // limpa após 10s
     sb.from('sc_data')
-      .upsert({ key: k, value: v, updated_at: writeTs }, { onConflict: 'key' })
+      .upsert({ key: k, value: v, updated_at: new Date().toISOString() }, { onConflict: 'key' })
       .then(({ error }) => {
         if (error) { console.warn('Supabase push error:', error.message); _setSyncBadge('err', '❌ erro sync'); }
         else { _setSyncBadge('ok', '✅ sincronizado'); setTimeout(() => _setSyncBadge('ok', '⚡ ao vivo'), 3000); }
@@ -2590,32 +2584,8 @@ const DB = {
     _setSyncBadge('ok', '⚡ ao vivo');
     return true;
   },
-  subscribeRealtime: () => {
-    const sb = _getSB();
-    if (!sb) return;
-    if (_syncChannel) { sb.removeChannel(_syncChannel); }
-    _syncChannel = sb.channel('sc_data_watch')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sc_data' }, (payload) => {
-        const rec = payload.new;
-        if (!rec || !rec.key || !rec.key.startsWith('sc_')) return;
-        // Ignorar eventos gerados por esta sessão (evita loop stale-payload)
-        const tag = rec.key + '|' + rec.updated_at;
-        if (_ourWrites.has(tag)) { _ourWrites.delete(tag); return; }
-        // Dado veio de outro dispositivo — atualizar local
-        const newVal = JSON.stringify(rec.value);
-        localStorage.setItem(rec.key, newVal);
-        if (rec.key === 'sc_despesas') despesas = rec.value || [];
-        if (rec.key === 'sc_entradas') entradas = rec.value || [];
-        if (rec.key === 'sc_metas')    metas    = rec.value || [];
-        _setSyncBadge('ok', '🔄 atualizando...');
-        if (typeof forceRefresh === 'function') forceRefresh();
-        setTimeout(() => _setSyncBadge('ok', '⚡ ao vivo'), 1500);
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') _setSyncBadge('ok', '⚡ ao vivo');
-        else if (status === 'CLOSED') _setSyncBadge('off', '⚡ offline');
-      });
-  },
+  // Realtime desativado — sincronização acontece ao recarregar a página
+  subscribeRealtime: () => {},
 };
 
 let despesas = DB.get('sc_despesas');
