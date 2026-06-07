@@ -142,20 +142,26 @@ function changePwd(user) {
 async function resetData() {
   if (!confirm('⚠️ Isso vai apagar TODAS as despesas, entradas e metas salvas.\n\nTem certeza?')) return;
   if (!confirm('Confirmar reset completo? Essa ação não pode ser desfeita.')) return;
-  const SC_KEYS = ['sc_despesas','sc_entradas','sc_metas','sc_hist','sc_investimentos',
-    'sc_inv_livre','sc_fixas','sc_contas','sc_financiamentos','sc_alerts_dismissed'];
-  // 1. DELETE linhas do Supabase (não upsert vazio — assim loadFromCloud não restaura nada)
+  const defaultMetas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
+  const SC_EMPTY = {
+    sc_despesas:[], sc_entradas:[], sc_hist:[], sc_investimentos:{},
+    sc_inv_livre:[], sc_fixas:[], sc_contas:[], sc_financiamentos:[], sc_alerts_dismissed:[]
+  };
+  _setSyncBadge('sync', '🔄 zerando...');
+  // 1. Aguardar upserts no Supabase (mesmo mecanismo que salva dados normais)
   const sb = _getSB();
   if (sb) {
-    try { await sb.from('sc_data').delete().in('key', SC_KEYS); } catch(e) { console.warn('Supabase delete:', e); }
+    const rows = Object.entries(SC_EMPTY).map(([k,v]) => ({key:k, value:v, updated_at: new Date().toISOString()}));
+    rows.push({key:'sc_metas', value:defaultMetas, updated_at: new Date().toISOString()});
+    await Promise.all(rows.map(row => sb.from('sc_data').upsert(row, {onConflict:'key'})));
   }
-  // 2. Limpar localStorage
-  SC_KEYS.forEach(k => localStorage.removeItem(k));
+  // 2. Limpar localStorage após Supabase confirmado
+  Object.keys(SC_EMPTY).forEach(k => localStorage.removeItem(k));
   // 3. Resetar variáveis em memória
   despesas = [];
   entradas = [];
-  metas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
-  DB.set('sc_metas', metas);
+  metas = defaultMetas;
+  localStorage.setItem('sc_metas', JSON.stringify(defaultMetas));
   if(typeof renderDespList==='function') renderDespList();
   if(typeof renderDespTable==='function') renderDespTable();
   if(typeof renderInvLivre==='function') renderInvLivre();
