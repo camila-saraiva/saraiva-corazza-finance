@@ -484,8 +484,13 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 /* MODAL */
 .modal-overlay {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-  z-index: 200; align-items: center; justify-content: center; padding: 20px;
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+  z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-card {
+  background: white; border-radius: 14px; padding: 20px;
+  width: 100%; max-width: 360px; max-height: 90vh; overflow-y: auto;
+  position: relative; z-index: 1001;
 }
 .modal-overlay.open { display: flex; }
 .modal {
@@ -961,9 +966,9 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         <div class="hbar-val" id="hbar-comprom-val">—</div>
       </div>
       <div class="hbar-row">
-        <div class="hbar-label">Taxa poupança</div>
-        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupanca-fill" style="width:0%;background:var(--eur-c);"></div></div>
-        <div class="hbar-val" id="hbar-poupanca-val">—</div>
+        <div class="hbar-label">Patrimônio</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupanca-fill" style="width:0%;background:var(--gold);"></div></div>
+        <div class="hbar-val" id="hbar-poupanca-val" style="font-size:9px;">—</div>
       </div>
     </div>
   </div>
@@ -1576,18 +1581,24 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   <div class="section-title">Imóveis</div>
   <div class="card-white mb12">
     <div class="imovel-row">
-      <div>
-        <div class="imovel-name">🇧🇷 Imóvel Brasil</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="imovel-name">🇧🇷 Imóvel Brasil</div>
+          <button onclick="openImovelModal('br')" style="background:none;border:none;cursor:pointer;font-size:12px;color:#aaa;padding:0;" title="Editar">✏️</button>
+        </div>
         <div class="imovel-sub" id="inv-imovel-br-sub">Residencial · Brasil</div>
       </div>
       <div>
         <div class="imovel-val text-brl" id="inv-imovel-br-val">R$ —</div>
-        <div class="imovel-renda text-success">Renda Variável: <span id="inv-renda-br-val">R$ 2.800</span>/mês</div>
+        <div class="imovel-renda text-success">Renda: <span id="inv-renda-br-val">R$ 0</span>/mês</div>
       </div>
     </div>
     <div class="imovel-row">
-      <div>
-        <div class="imovel-name">🇮🇹 Imóvel Itália</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="imovel-name">🇮🇹 Imóvel Itália</div>
+          <button onclick="openImovelModal('it')" style="background:none;border:none;cursor:pointer;font-size:12px;color:#aaa;padding:0;" title="Editar">✏️</button>
+        </div>
         <div class="imovel-sub" id="inv-imovel-it-sub">Residencial · Itália</div>
       </div>
       <div>
@@ -2141,6 +2152,40 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <button class="btn-cancel" onclick="document.getElementById('modal-fixa').classList.remove('open')">Cancelar</button>
       <button class="btn-save-m" onclick="saveFixa()">Salvar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL IMÓVEL -->
+<div class="modal-overlay" id="modal-imovel" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-card" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title" id="imovel-modal-title">Imóvel</div>
+      <button class="modal-close" onclick="document.getElementById('modal-imovel').classList.remove('open')">×</button>
+    </div>
+    <input type="hidden" id="imovel-tipo" value="br" />
+    <div class="form-grid">
+      <div class="fg full">
+        <div class="flabel" id="imovel-val-label">Valor (R$)</div>
+        <input class="finput" type="number" id="imovel-valor" placeholder="0" step="1000" min="0" />
+      </div>
+      <div class="fg">
+        <div class="flabel">Data de compra</div>
+        <input class="finput" type="month" id="imovel-data" />
+      </div>
+      <div class="fg">
+        <div class="flabel">Titularidade</div>
+        <select class="finput" id="imovel-titular">
+          <option value="ambos">👥 Ambos</option>
+          <option value="camila">👩‍💼 Camila</option>
+          <option value="ayrton">👨‍💼 Ayrton</option>
+        </select>
+      </div>
+      <div class="fg full" id="imovel-renda-wrap">
+        <div class="flabel">Renda mensal (R$/mês)</div>
+        <input class="finput" type="number" id="imovel-renda" placeholder="0" step="100" min="0" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveImovel()">Salvar</button>
   </div>
 </div>
 
@@ -3951,7 +3996,14 @@ function updateDashCards() {
   set('d-caixa-brl', caixaBR>0?'R$ '+Math.round(caixaBR).toLocaleString('pt-BR'):'—');
   set('d-entradas', fe(entrMes));
   set('d-despesas', fe(despMes));
-  set('d-sobra', entrMes>0||despMes>0? (entrMes-despMes>=0?'+ ':'')+'€ '+(entrMes-despMes).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —');
+  const sobra = entrMes - despMes;
+  const sobraEl = document.getElementById('d-sobra');
+  if (sobraEl) {
+    sobraEl.textContent = entrMes>0||despMes>0 ? (sobra>=0?'+ ':'- ')+'€ '+Math.abs(sobra).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —';
+    sobraEl.className = 'card-value '+(sobra>200?'text-eur':sobra>=0?'text-gold':'text-danger');
+  }
+  const caixaEl = document.getElementById('d-caixa-eur');
+  if (caixaEl && caixaIT>0) caixaEl.className = 'card-value '+(caixaIT>2000?'text-eur':caixaIT>500?'text-gold':'text-danger');
   set('d-patrim-brl', patrimBRL>0?'R$ '+Math.round(patrimBRL).toLocaleString('pt-BR'):'R$ —');
   set('d-patrim-eur', patrimBRL>0?'≈ € '+Math.round(patrimBRL/fx).toLocaleString('pt-BR'):'≈ € —');
   // Acumulado 2026
@@ -3972,9 +4024,15 @@ function updateDashCards() {
   const totFixasBrl = fixas2.filter(f=>f.moeda==='brl').reduce((s,f)=>s+f.valor,0);
   set('d-fixas-mes', totFixasEur>0?'€ '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
   set('d-fixas-sub', totFixasBrl>0?fixas2.filter(f=>f.moeda==='eur').length+' EUR · '+fixas2.filter(f=>f.moeda==='brl').length+' BRL':fixas2.length+' despesa(s) recorrente(s)');
-  // Saldo previsto = caixaIT + entradas ainda esperadas - saídas ainda esperadas
+  // Saldo previsto = caixaIT + DRE mês
   const saldoPrev = caixaIT + (entrMes - despMes);
-  set('d-saldo-prev', saldoPrev!==0?fe(saldoPrev):'€ —');
+  const prevEl2 = document.getElementById('d-saldo-prev');
+  if (prevEl2) {
+    prevEl2.textContent = saldoPrev >= 0
+      ? '€ '+saldoPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})
+      : '- € '+Math.abs(saldoPrev).toLocaleString('pt-BR',{minimumFractionDigits:2});
+    prevEl2.className = 'card-value '+(saldoPrev>=1500?'text-eur':saldoPrev>=0?'text-gold':'text-danger');
+  }
   set('d-saldo-prev-sub', 'Caixa atual + DRE mês');
 }
 
@@ -4287,6 +4345,43 @@ function drillRow(label, val, color, bold=false) {
 // ============================================================
 // INVESTIMENTOS — EDITAR VALORES
 // ============================================================
+function openImovelModal(tipo) {
+  const inv = DB.get('sc_investimentos', {});
+  document.getElementById('imovel-tipo').value = tipo;
+  const isBr = tipo === 'br';
+  document.getElementById('imovel-modal-title').textContent = isBr ? '🇧🇷 Imóvel Brasil' : '🇮🇹 Imóvel Itália';
+  document.getElementById('imovel-val-label').textContent = isBr ? 'Valor (R$)' : 'Valor (€)';
+  document.getElementById('imovel-valor').value = isBr ? (inv.imovelBr||0) : (inv.imovelIt||0);
+  document.getElementById('imovel-data').value = isBr ? (inv.imovelBrData||'') : (inv.imovelItData||'');
+  document.getElementById('imovel-titular').value = isBr ? (inv.imovelBrTitular||'ambos') : (inv.imovelItTitular||'ambos');
+  const rendaWrap = document.getElementById('imovel-renda-wrap');
+  if (rendaWrap) rendaWrap.style.display = isBr ? '' : 'none';
+  if (isBr) document.getElementById('imovel-renda').value = inv.rendaBr||0;
+  document.getElementById('modal-imovel').classList.add('open');
+}
+
+function saveImovel() {
+  const tipo = document.getElementById('imovel-tipo').value;
+  const valor = parseFloat(document.getElementById('imovel-valor').value)||0;
+  const data = document.getElementById('imovel-data').value||'';
+  const titular = document.getElementById('imovel-titular').value||'ambos';
+  const inv = DB.get('sc_investimentos', {});
+  if (tipo === 'br') {
+    inv.imovelBr = valor;
+    inv.imovelBrData = data;
+    inv.imovelBrTitular = titular;
+    inv.rendaBr = parseFloat(document.getElementById('imovel-renda').value)||0;
+  } else {
+    inv.imovelIt = valor;
+    inv.imovelItData = data;
+    inv.imovelItTitular = titular;
+  }
+  DB.set('sc_investimentos', inv);
+  document.getElementById('modal-imovel').classList.remove('open');
+  renderInvestimentosValues();
+  updateDashCards();
+}
+
 function openInvModal() {
   const inv = DB.get('sc_investimentos', {});
   const fields = {
@@ -4616,8 +4711,8 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const credByMo = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='credito').reduce((s,d)=>s+d.valor,0));
   // Variáveis = Fatura + Débito (crédito não afeta caixa do mês)
   const varRealByMo = fatByMo.map((f,i) => f + debByMo[i]);
-  // Saída total = fixas + variáveis
-  const saidaByMo = varRealByMo.map((v,i) => v + fixasByMo[i]);
+  // Saída total = fixas + variáveis + crédito CC (apenas meses futuros, para simulação)
+  const saidaByMo = varRealByMo.map((v,i) => v + fixasByMo[i] + (i > curIdx ? credByMo[i] : 0));
   // DRE por mês
   const dreByMo2 = entrByMo.map((e,i) => e - saidaByMo[i]);
   // Crédito CC do mês vira fatura estimada do próximo mês
@@ -4745,6 +4840,16 @@ function updateSaudeFinanceira() {
   const reservaPct = metaEmerg > 0 ? Math.min(Math.round(caixaIT / metaEmerg * 100), 100) : 0;
   const compromPct = entrMes > 0 && totFixasEur > 0 ? Math.min(Math.round(totFixasEur / entrMes * 100), 100) : 0;
   const poupancaPct = entrMes > 0 ? Math.max(0, Math.min(Math.round((entrMes - despMes) / entrMes * 100), 100)) : 0;
+  // Patrimônio total para barra
+  const fx2 = fxRates.EURBRL || 6.0;
+  const inv2 = DB.get('sc_investimentos',{});
+  const invLivre2 = DB.get('sc_inv_livre',[]);
+  const patrimBRL2 = (inv2.imovelBr||0) + (inv2.xp||0)
+    + invLivre2.filter(i=>i.moeda==='brl').reduce((s,i)=>s+i.valor,0)
+    + invLivre2.filter(i=>i.moeda==='eur').reduce((s,i)=>s+i.valor,0)*fx2
+    + ((inv2.imovelIt||0) + caixaIT)*fx2;
+  const META_PATRIM = 2000000; // meta R$ 2M
+  const patrimPct = Math.min(Math.round(patrimBRL2/META_PATRIM*100), 100);
 
   const reservaScore  = reservaPct * 0.25;
   const compromScore  = compromPct > 0 ? Math.max(0, (100 - compromPct)) * 0.45 : 45;
@@ -4765,7 +4870,7 @@ function updateSaudeFinanceira() {
   setTxt('health-sub-1', sub);       setTxt('health-sub-2', sub);
   setTxt('hbar-reserva-val', reservaPct + '%'); setW('hbar-reserva-fill', reservaPct + '%');
   setTxt('hbar-comprom-val', compromPct + '%'); setW('hbar-comprom-fill', compromPct + '%');
-  setTxt('hbar-poupanca-val', poupancaPct + '%'); setW('hbar-poupanca-fill', poupancaPct + '%');
+  setTxt('hbar-poupanca-val', patrimBRL2>0?'R$ '+Math.round(patrimBRL2/1000)+'k':'—'); setW('hbar-poupanca-fill', patrimPct + '%');
 
   // Update score donuts
   [{ id:'scoreChart', cid:'scoreChart' }, { id:'estratScore', cid:'estratScore' }].forEach(({id}) => {
@@ -4831,9 +4936,36 @@ function renderAlerts() {
     alerts.push({type:'success', icon:'✅', title:'Tudo em ordem!', text:'Sem alertas críticos. Continue monitorando suas finanças.'});
   }
 
-  wrap.innerHTML = alerts.map(a =>
-    `<div class="alert-card ${a.type}"><div class="alert-icon">${a.icon}</div><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-text">${a.text}</div></div></div>`
+  // Alerta de bônus: verificar entradas tipo bônus sem "baixa" confirmada
+  const dismissed = DB.get('sc_alerts_dismissed', []);
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const bonus = entradas.filter(e => /b[oô]nus/i.test(e.desc||e.tipo||'') && e.data && e.data.startsWith(mesAtual));
+  if (bonus.length) {
+    const bonusId = 'bonus_'+mesAtual;
+    if (!dismissed.includes(bonusId)) {
+      const total = bonus.reduce((s,e)=>s+e.valor,0);
+      const sym = bonus[0].moeda==='eur'?'€':'R$';
+      alerts.unshift({type:'warn', icon:'💡', title:'Bônus lançado — confirme a baixa', text:`${sym} ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})} em bônus registrado. Verifique se o valor já caiu na conta bancária.`, id:bonusId});
+    }
+  }
+
+  const finalAlerts = alerts.filter(a => !a.id || !dismissed.includes(a.id));
+  if (!finalAlerts.length) finalAlerts.push({type:'success', icon:'✅', title:'Tudo em ordem!', text:'Sem alertas críticos.'});
+
+  wrap.innerHTML = finalAlerts.map((a,i) =>
+    `<div class="alert-card ${a.type}" style="position:relative;">
+      <div class="alert-icon">${a.icon}</div>
+      <div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-text">${a.text}</div></div>
+      <button onclick="dismissAlert('${a.id||'alert_'+i+'_'+Date.now()}',this.closest('.alert-card'))" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:14px;line-height:1;padding:2px;" title="Dispensar">✕</button>
+    </div>`
   ).join('');
+}
+
+function dismissAlert(id, el) {
+  const dismissed = DB.get('sc_alerts_dismissed', []);
+  if (!dismissed.includes(id)) dismissed.push(id);
+  DB.set('sc_alerts_dismissed', dismissed);
+  if (el) el.style.display = 'none';
 }
 
 // ============================================================
