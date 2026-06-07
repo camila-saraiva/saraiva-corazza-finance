@@ -149,6 +149,7 @@ function resetData() {
   DB.set('sc_metas', metas);
   if(typeof renderDespList==='function') renderDespList();
   if(typeof renderDespTable==='function') renderDespTable();
+  if(typeof renderInvLivre==='function') renderInvLivre();
   if(typeof renderCatSummary==='function') renderCatSummary();
   if(typeof renderEntrList==='function') renderEntrList();
   if(typeof renderEntrTable==='function') renderEntrTable();
@@ -876,13 +877,12 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   </div>
   <nav class="nav" id="main-nav">
     <div class="nav-item active" onclick="showTab('dashboard',this)">Dashboard</div>
-    <div class="nav-item" onclick="showTab('resumo',this)">Resumo</div>
+    <div class="nav-item" onclick="showTab('cashflow',this)">Cashflow</div>
+    <div class="nav-item" onclick="showTab('estrategia',this)">Estratégia</div>
     <div class="nav-item" onclick="showTab('despesas',this)">Despesas</div>
     <div class="nav-item" onclick="showTab('entradas',this)">Entradas</div>
-    <div class="nav-item" onclick="showTab('cashflow',this)">Cashflow</div>
     <div class="nav-item" onclick="showTab('investimentos',this)">Investimentos</div>
     <div class="nav-item" onclick="showTab('operacao',this)">Operação</div>
-    <div class="nav-item" onclick="showTab('estrategia',this)">Estratégia</div>
     <div class="nav-item" onclick="showTab('relatorios',this)">Relatórios</div>
   </nav>
 </div>
@@ -921,8 +921,20 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
     <div class="card-dark">
       <div class="card-label">Acumulado 2026</div>
-      <div class="card-value text-gold" id="d-rendimento" onclick="showDrillDown('acumulado')" style="cursor:pointer;">+ R$ —</div>
-      <div class="card-sub">Histórico 2024</div>
+      <div class="card-value text-gold" id="d-rendimento" onclick="showDrillDown('acumulado')" style="cursor:pointer;">—</div>
+      <div class="card-sub" id="d-acumulado-sub">Resultado líquido ano</div>
+    </div>
+  </div>
+  <div class="cards-row">
+    <div class="card-dark">
+      <div class="card-label">Fixas /mês</div>
+      <div class="card-value text-danger" id="d-fixas-mes" onclick="showDrillDown('fixas')" style="cursor:pointer;">€ —</div>
+      <div class="card-sub" id="d-fixas-sub">Despesas recorrentes</div>
+    </div>
+    <div class="card-dark">
+      <div class="card-label">Saldo previsto</div>
+      <div class="card-value text-eur" id="d-saldo-prev" onclick="showDrillDown('caixa')" style="cursor:pointer;">€ —</div>
+      <div class="card-sub" id="d-saldo-prev-sub">Caixa final estimado</div>
     </div>
   </div>
 
@@ -1195,6 +1207,12 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <option value="cam">Camila</option>
       <option value="ayr">Ayrton</option>
       <option value="con">Conjunto</option>
+    </select>
+    <select id="ft-pagamento" onchange="renderDespTable()">
+      <option value="">Todos pagamentos</option>
+      <option value="debito">💳 Débito</option>
+      <option value="credito">🪙 Crédito CC</option>
+      <option value="fatura">📄 Fatura CC</option>
     </select>
     <span class="filter-reset" onclick="resetDespFilters()">✕ Limpar</span>
   </div>
@@ -1523,44 +1541,18 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <div class="ind-card"><div class="ind-name">EUR/BRL</div><div class="ind-val" id="inv-eurbrl">6,18</div><div class="ind-delta" style="color:var(--eur-c);">▲ ao vivo</div></div>
   </div>
 
-  <div class="section-title">🇧🇷 Carteira Brasil</div>
-  <div class="port-card">
-    <div class="port-header">
-      <span style="font-size:18px;">🇧🇷</span>
-      <span class="fw7 fs13">🇧🇷 Carteira Brasil</span>
-      <div class="port-total text-brl" id="inv-xp-total">R$ 0</div>
-    </div>
-    <div class="port-row">
-      <div class="port-dot" style="background:var(--eur-c);"></div>
-      <div class="port-name">Renda Fixa / CDB <span class="port-sub">SELIC+</span></div>
-      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-rf" style="width:55%;background:var(--eur-c);"></div></div>
-      <div class="port-pct" id="inv-pct-rf">55%</div>
-      <div class="port-val text-brl" id="inv-xp-rf-val">R$ 0</div>
-      <div class="port-rent" style="color:var(--success);">+13,4%</div>
-    </div>
-    <div class="port-row">
-      <div class="port-dot" style="background:var(--info);"></div>
-      <div class="port-name">Fundos multimercado</div>
-      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-fundo" style="width:25%;background:var(--info);"></div></div>
-      <div class="port-pct" id="inv-pct-fundo">25%</div>
-      <div class="port-val text-brl" id="inv-xp-fundo-val">R$ 0</div>
-      <div class="port-rent" style="color:var(--success);">+8,1%</div>
-    </div>
-    <div class="port-row">
-      <div class="port-dot" style="background:var(--gold);"></div>
-      <div class="port-name">Ações / FIIs</div>
-      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-acoes" style="width:12%;background:var(--gold);"></div></div>
-      <div class="port-pct" id="inv-pct-acoes">12%</div>
-      <div class="port-val text-brl" id="inv-xp-acoes-val">R$ 0</div>
-      <div class="port-rent" style="color:var(--success);">+5,3%</div>
-    </div>
-    <div class="port-row">
-      <div class="port-dot" style="background:var(--camila);"></div>
-      <div class="port-name">Cripto <span class="port-sub">BTC/ETH</span></div>
-      <div class="port-bar-wrap"><div class="port-bar" id="inv-bar-cripto" style="width:8%;background:var(--camila);"></div></div>
-      <div class="port-pct" id="inv-pct-cripto">8%</div>
-      <div class="port-val text-brl" id="inv-xp-cripto-val">R$ 0</div>
-      <div class="port-rent" style="color:var(--success);">+21%</div>
+  <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+    Carteira de Investimentos
+    <button class="btn-secondary" onclick="openInvLivreModal(-1)">+ Adicionar</button>
+  </div>
+  <div id="inv-livre-wrap">
+    <div class="alert-card info" style="margin-bottom:0;" id="inv-livre-empty"><div class="alert-icon">💼</div><div class="alert-body"><div class="alert-title">Nenhum investimento cadastrado</div><div class="alert-text">Adicione investimentos — escolha moeda, banco, tipo e taxa livremente.</div></div></div>
+  </div>
+  <div class="card-white mb12" id="inv-livre-totais" style="padding:10px 14px;display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div><div style="font-size:10px;color:#888;">Total EUR</div><div class="fw7 text-eur" id="inv-livre-tot-eur">€ 0</div></div>
+      <div><div style="font-size:10px;color:#888;">Total BRL</div><div class="fw7 text-brl" id="inv-livre-tot-brl">R$ 0</div></div>
+      <div><div style="font-size:10px;color:#888;">Total em BRL</div><div class="fw7 text-gold" id="inv-livre-tot-geral">R$ 0</div></div>
     </div>
   </div>
 
@@ -1733,15 +1725,22 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <span class="flabel" style="width:130px;flex-shrink:0;">Parcela extra/mês</span>
-        <input type="range" min="50" max="1000" value="240" step="10" id="slid-ant" oninput="calcAntecipar()" style="flex:1;">
-        <span id="slid-ant-val" class="fw7 fs12" style="width:50px;text-align:right;">€ 240</span>
+        <span class="flabel" style="width:130px;flex-shrink:0;">Valor antecipação</span>
+        <input type="number" class="finput" id="sim-ant-input" placeholder="Ex: 500" min="0" step="50" oninput="calcAntecipar()" style="flex:1;max-width:130px;" />
+        <span class="fs11" style="color:#888;">€/mês</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span class="flabel" style="width:130px;flex-shrink:0;">Ou use o slider</span>
+        <input type="range" min="0" max="2000" value="240" step="50" id="slid-ant" oninput="syncAntSlider()" style="flex:1;">
+        <span id="slid-ant-val" class="fw7 fs12" style="width:55px;text-align:right;">€ 240</span>
       </div>
       <div class="sim-result">
         <div class="sr-item"><div class="sr-label">Quitação em</div><div class="sr-val text-eur" id="r-meses">—</div></div>
-        <div class="sr-item"><div class="sr-label">Economia juros</div><div class="sr-val text-gold" id="r-econ">—</div></div>
+        <div class="sr-item"><div class="sr-label">Meses economizados</div><div class="sr-val text-gold" id="r-meses-eco">—</div></div>
+        <div class="sr-item"><div class="sr-label">Economia em juros</div><div class="sr-val text-gold" id="r-econ">—</div></div>
         <div class="sr-item"><div class="sr-label">Libera/mês após</div><div class="sr-val text-cam" id="r-libera">—</div></div>
       </div>
+      <div id="r-vale-pena" style="margin-top:10px;padding:10px;border-radius:8px;text-align:center;font-weight:700;font-size:14px;display:none;"></div>
     </div>
     <div class="inner-section" id="sim-nova">
       <div style="margin-bottom:10px;">
@@ -1810,6 +1809,38 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
   </div>
   </div><!-- end daily-analysis-wrap -->
+
+  <div class="section-title">Conversão de moedas — análise</div>
+  <div class="card-white mb12" style="padding:14px;" id="conv-moedas-wrap">
+    <div style="font-size:12px;color:#555;margin-bottom:12px;">Taxas atuais do mercado (referência Wise). Insira um valor para converter e ver o comparativo.</div>
+    <div class="form-grid">
+      <div class="fg">
+        <div class="flabel">Valor a converter</div>
+        <input class="finput" type="number" id="conv-valor" placeholder="Ex: 1000" oninput="calcConversao()" />
+      </div>
+      <div class="fg">
+        <div class="flabel">Moeda de origem</div>
+        <select class="finput" id="conv-from" onchange="calcConversao()">
+          <option value="eur">Euro (€)</option>
+          <option value="brl">Real (R$)</option>
+          <option value="usd">Dólar (US$)</option>
+        </select>
+      </div>
+    </div>
+    <div id="conv-resultados" style="margin-top:10px;"></div>
+    <div style="margin-top:14px;">
+      <div class="section-title" style="font-size:12px;margin-bottom:6px;border:none;padding:0;">Taxas ao vivo</div>
+      <div class="ind-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="ind-card"><div class="ind-name">EUR/BRL</div><div class="ind-val" id="cv-eurbrl">—</div><div class="ind-delta" style="color:var(--eur-c);">ao vivo</div></div>
+        <div class="ind-card"><div class="ind-name">USD/BRL</div><div class="ind-val" id="cv-usdbrl">—</div><div class="ind-delta" style="color:var(--gold);">ao vivo</div></div>
+        <div class="ind-card"><div class="ind-name">EUR/USD</div><div class="ind-val" id="cv-eurusd">—</div><div class="ind-delta" style="color:var(--info);">ao vivo</div></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:rgba(201,162,39,0.07);border-radius:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px;">💡 Dica Wise</div>
+      <div style="font-size:11px;color:#555;" id="cv-dica">Informe um valor acima para ver a análise de quando converter.</div>
+    </div>
+  </div>
 </div>
 
 
@@ -1915,8 +1946,11 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   <div class="bn-item active" onclick="showTab('dashboard',null,this)">
     <div class="bn-icon">🏠</div><div class="bn-label">Dashboard</div>
   </div>
-  <div class="bn-item" onclick="showTab('resumo',null,this)">
-    <div class="bn-icon">📋</div><div class="bn-label">Resumo</div>
+  <div class="bn-item" onclick="showTab('cashflow',null,this)">
+    <div class="bn-icon">📊</div><div class="bn-label">Cashflow</div>
+  </div>
+  <div class="bn-item" onclick="showTab('estrategia',null,this)">
+    <div class="bn-icon">🎯</div><div class="bn-label">Estratégia</div>
   </div>
   <div class="bn-item" onclick="showTab('despesas',null,this)">
     <div class="bn-icon">💸</div><div class="bn-label">Despesas</div>
@@ -1924,14 +1958,11 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   <div class="bn-item" onclick="showTab('entradas',null,this)">
     <div class="bn-icon">💰</div><div class="bn-label">Entradas</div>
   </div>
-  <div class="bn-item" onclick="showTab('cashflow',null,this)">
-    <div class="bn-icon">📊</div><div class="bn-label">Cashflow</div>
-  </div>
   <div class="bn-item" onclick="showTab('investimentos',null,this)">
     <div class="bn-icon">💼</div><div class="bn-label">Invest.</div>
   </div>
-  <div class="bn-item" onclick="showTab('estrategia',null,this)">
-    <div class="bn-icon">🎯</div><div class="bn-label">Estratégia</div>
+  <div class="bn-item" onclick="showTab('relatorios',null,this)">
+    <div class="bn-icon">📁</div><div class="bn-label">Relatórios</div>
   </div>
 </nav>
 
@@ -2110,6 +2141,65 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <button class="btn-cancel" onclick="document.getElementById('modal-fixa').classList.remove('open')">Cancelar</button>
       <button class="btn-save-m" onclick="saveFixa()">Salvar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL INVESTIMENTO LIVRE -->
+<div class="modal-overlay" id="modal-inv-livre" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-card" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="inv-livre-modal-title">Novo investimento</div>
+      <button class="modal-close" onclick="document.getElementById('modal-inv-livre').classList.remove('open')">×</button>
+    </div>
+    <input type="hidden" id="inv-livre-idx" value="-1" />
+    <div class="form-grid">
+      <div class="fg full">
+        <div class="flabel">Nome / Descrição</div>
+        <input class="finput" type="text" id="il-nome" placeholder="Ex: CDB Itaú 110% CDI, Bitcoin, etc." />
+      </div>
+      <div class="fg">
+        <div class="flabel">Moeda</div>
+        <select class="finput" id="il-moeda">
+          <option value="brl">🇧🇷 Real (BRL)</option>
+          <option value="eur">🇮🇹 Euro (EUR)</option>
+          <option value="usd">🇺🇸 Dólar (USD)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="flabel">Tipo</div>
+        <select class="finput" id="il-tipo">
+          <option value="Renda Fixa">Renda Fixa / CDB</option>
+          <option value="Tesouro">Tesouro Direto</option>
+          <option value="Fundos">Fundos</option>
+          <option value="Ações">Ações</option>
+          <option value="FIIs">FIIs</option>
+          <option value="Cripto">Cripto</option>
+          <option value="Previdência">Previdência</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="fg full">
+        <div class="flabel">Banco / Corretora</div>
+        <input class="finput" type="text" id="il-banco" placeholder="Ex: XP, Itaú, Nubank, Binance..." />
+      </div>
+      <div class="fg">
+        <div class="flabel">Valor atual</div>
+        <input class="finput" type="number" id="il-valor" placeholder="0,00" step="0.01" min="0" />
+      </div>
+      <div class="fg">
+        <div class="flabel">Taxa retorno (% a.a.)</div>
+        <input class="finput" type="number" id="il-taxa" placeholder="Ex: 13.25" step="0.01" min="0" />
+      </div>
+      <div class="fg full">
+        <div class="flabel">Vencimento (opcional)</div>
+        <input class="finput" type="date" id="il-venc" />
+      </div>
+      <div class="fg full">
+        <div class="flabel">Observação</div>
+        <input class="finput" type="text" id="il-obs" placeholder="Ex: Atualizado mensalmente, indexado IPCA..." />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveInvLivre()">Salvar investimento</button>
   </div>
 </div>
 
@@ -2503,7 +2593,7 @@ function showTab(tabId, navEl, bnEl) {
     dashboard: initDashCharts,
     resumo: initResumoCharts,
     cashflow: initCfCharts,
-    investimentos: initInvestCharts,
+    investimentos: () => { initInvestCharts(); renderInvLivre(); },
     estrategia: initEstratCharts,
     despesas: () => { renderDespTable(); renderCatSummary(); },
     historico: renderHistorico,
@@ -2849,32 +2939,79 @@ function setSimTab(tab, el) {
   document.getElementById('sim-'+tab).classList.add('active');
 }
 
+function syncAntSlider() {
+  const slid = document.getElementById('slid-ant');
+  const inp = document.getElementById('sim-ant-input');
+  const valEl = document.getElementById('slid-ant-val');
+  if (slid && inp) inp.value = slid.value;
+  if (valEl && slid) valEl.textContent = '€ ' + slid.value;
+  calcAntecipar();
+}
+
 function calcAntecipar() {
   const selEl = document.getElementById('sim-divida');
+  const inpEl = document.getElementById('sim-ant-input');
   const slid = document.getElementById('slid-ant');
   const valEl = document.getElementById('slid-ant-val');
-  if (!selEl || !slid) return;
+  if (!selEl) return;
   const parts = (selEl.value || '').split(',');
   const saldo0   = parseFloat(parts[0]) || 0;
-  const taxaMes  = parseFloat(parts[1]) || 0; // already decimal (e.g. 0.007)
+  const taxaMes  = parseFloat(parts[1]) || 0;
   const parcOrig = parseFloat(parts[2]) || 0;
   if (!saldo0 || !parcOrig) {
-    ['r-meses','r-econ','r-libera'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent='—'; });
+    ['r-meses','r-meses-eco','r-econ','r-libera'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent='—'; });
+    const vp = document.getElementById('r-vale-pena'); if(vp) vp.style.display='none';
     return;
   }
-  const extra = parseInt(slid.value) || 0;
-  if (valEl) valEl.textContent = '€ ' + extra;
+  // Sincronizar input e slider
+  let extra = 0;
+  if (inpEl && inpEl.value !== '') {
+    extra = parseFloat(inpEl.value) || 0;
+    if (slid) { slid.value = Math.min(extra, 2000); }
+    if (valEl) valEl.textContent = '€ ' + extra;
+  } else if (slid) {
+    extra = parseFloat(slid.value) || 0;
+    if (valEl) valEl.textContent = '€ ' + extra;
+  }
   const parcela = parcOrig + extra;
+  // Simular com antecipação
   let m = 0, tot = saldo0, j = 0;
   while (tot > 0.01 && m < 600) { const ji = tot * taxaMes; j += ji; tot = tot + ji - parcela; m++; }
+  // Simular sem antecipação
   let mb = 0, totb = saldo0, jb = 0;
   while (totb > 0.01 && mb < 600) { const ji = totb * taxaMes; jb += ji; totb = totb + ji - parcOrig; mb++; }
+  const econJuros = Math.max(0, Math.round(jb - j));
+  const mesesEco = Math.max(0, mb - m);
   const rMeses = document.getElementById('r-meses');
+  const rMesesEco = document.getElementById('r-meses-eco');
   const rEcon  = document.getElementById('r-econ');
   const rLib   = document.getElementById('r-libera');
+  const rVP    = document.getElementById('r-vale-pena');
   if (rMeses) rMeses.textContent = m > 0 ? m + ' meses' : '—';
-  if (rEcon)  rEcon.textContent  = '€ ' + Math.max(0, Math.round(jb - j)).toLocaleString('pt-BR');
-  if (rLib)   rLib.textContent   = '€ ' + parcela.toLocaleString('pt-BR');
+  if (rMesesEco) rMesesEco.textContent = mesesEco > 0 ? '- ' + mesesEco + ' meses' : '—';
+  if (rEcon)  rEcon.textContent  = econJuros > 0 ? '€ ' + econJuros.toLocaleString('pt-BR') : '€ 0';
+  if (rLib)   rLib.textContent   = '€ ' + parcOrig.toLocaleString('pt-BR') + '/mês liberado';
+  // VALE A PENA?
+  if (rVP && extra > 0) {
+    rVP.style.display = 'block';
+    if (econJuros > extra * 3 || mesesEco > 6) {
+      rVP.textContent = '✅ VALE A PENA — economia significativa de juros!';
+      rVP.style.background = 'rgba(29,158,117,0.15)';
+      rVP.style.color = 'var(--eur-c)';
+    } else if (econJuros > 0 && taxaMes * 12 > 0.05) {
+      rVP.textContent = '✅ VALE A PENA — taxa de juros justifica antecipação';
+      rVP.style.background = 'rgba(29,158,117,0.15)';
+      rVP.style.color = 'var(--eur-c)';
+    } else if (econJuros === 0) {
+      rVP.textContent = '➡️ NEUTRO — sem economia em juros (taxa muito baixa)';
+      rVP.style.background = 'rgba(201,162,39,0.1)';
+      rVP.style.color = 'var(--gold)';
+    } else {
+      rVP.textContent = '⚠️ ANALISE — economia pequena, considere investir o valor';
+      rVP.style.background = 'rgba(239,159,39,0.1)';
+      rVP.style.color = 'var(--warn)';
+    }
+  } else if (rVP) { rVP.style.display = 'none'; }
 }
 
 function calcNova() {
@@ -3173,6 +3310,7 @@ function initEstratCharts() {
   refreshSimuladorOptions();
   calcAntecipar();
   calcNova();
+  calcConversao();
 }
 
 // ============================================================
@@ -3209,11 +3347,15 @@ function buildDRETable() {
     const tr = document.createElement('tr');
     tr.className = r.cls;
     let html = `<td><span class="tipo-b">${r.tipo}</span>${r.desc}</td>`;
+    const rowIdx2 = DRE_ROWS.indexOf(r);
+    const clickableRows = [1,6,7,8,9,10];
     r.vals.forEach((v, i) => {
       const isCur = i === curIdx;
       const isFut = i > curIdx;
       let cls = isCur ? 'cell-cur' : '';
       let style = isFut ? 'opacity:0.5;font-style:italic;' : '';
+      const canClick = clickableRows.includes(rowIdx2) && v > 0;
+      if (canClick) style += 'cursor:pointer;';
       let display = v === null ? '—' : Math.abs(Math.round(v)).toLocaleString('pt-BR');
       if (r.cls === 'tr-dre') {
         cls += v >= 0 ? ' dre-pos' : ' dre-neg';
@@ -3223,7 +3365,8 @@ function buildDRETable() {
       } else if (r.tipo === '-') {
         display = '- ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
       }
-      html += `<td class="${cls}" style="${style}">${display}</td>`;
+      const onclk = canClick ? ` onclick="showDRETdDetail(${rowIdx2},${i})"` : '';
+      html += `<td class="${cls}" style="${style}"${onclk}>${display}</td>`;
     });
     html += `<td class="tot">${r.tot !== null ? r.tot.toLocaleString('pt-BR') : '—'}</td>`;
     html += `<td style="color:#aaa;font-size:10px;">${r.pct !== null ? r.pct : ''}</td>`;
@@ -3251,11 +3394,17 @@ function getDespFiltered() {
   const cat = document.getElementById('ft-cat')?.value || '';
   const moeda = document.getElementById('ft-moeda')?.value || '';
   const titular = document.getElementById('ft-titular')?.value || '';
+  const pagamento = document.getElementById('ft-pagamento')?.value || '';
   return despesas.filter(d => {
     if (mes && !d.data.startsWith(mes)) return false;
     if (cat && d.categoria !== cat) return false;
     if (moeda && d.moeda !== moeda) return false;
     if (titular && d.titular !== titular) return false;
+    if (pagamento) {
+      if (pagamento === 'debito' && d.pagamento && d.pagamento !== 'debito') return false;
+      if (pagamento === 'credito' && d.pagamento !== 'credito') return false;
+      if (pagamento === 'fatura' && d.pagamento !== 'fatura') return false;
+    }
     if (currentCountry === 'it' && d.moeda !== 'eur') return false;
     if (currentCountry === 'br' && d.moeda !== 'brl') return false;
     return true;
@@ -3299,7 +3448,7 @@ function renderDespTable() {
 }
 
 function resetDespFilters() {
-  ['ft-mes','ft-cat','ft-moeda','ft-titular'].forEach(id => {
+  ['ft-mes','ft-cat','ft-moeda','ft-titular','ft-pagamento'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -3789,7 +3938,12 @@ function updateDashCards() {
   const inv = DB.get('sc_investimentos',{});
   const xp = inv.xp||0, imovelBR=inv.imovelBr||0, imovelIT=inv.imovelIt||0;
   const fx = fxRates.EURBRL||6.0;
-  const patrimBRL = imovelBR + xp + (imovelIT*fx) + (caixaIT*fx);
+  // Incluir investimentos livres no patrimônio
+  const invLivre = DB.get('sc_inv_livre',[]);
+  const invLivreBrl = invLivre.filter(i=>i.moeda==='brl').reduce((s,i)=>s+i.valor,0);
+  const invLivreEur = invLivre.filter(i=>i.moeda==='eur').reduce((s,i)=>s+i.valor,0);
+  const invLivreUsd = invLivre.filter(i=>i.moeda==='usd').reduce((s,i)=>s+i.valor,0);
+  const patrimBRL = imovelBR + xp + invLivreBrl + (invLivreUsd*5.1) + (imovelIT*fx) + (caixaIT*fx) + (invLivreEur*fx);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   const fe=(v)=>v>0?'€ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —';
   const fb=(v)=>v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'R$ —';
@@ -3800,6 +3954,28 @@ function updateDashCards() {
   set('d-sobra', entrMes>0||despMes>0? (entrMes-despMes>=0?'+ ':'')+'€ '+(entrMes-despMes).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —');
   set('d-patrim-brl', patrimBRL>0?'R$ '+Math.round(patrimBRL).toLocaleString('pt-BR'):'R$ —');
   set('d-patrim-eur', patrimBRL>0?'≈ € '+Math.round(patrimBRL/fx).toLocaleString('pt-BR'):'≈ € —');
+  // Acumulado 2026
+  const yr2 = new Date().getFullYear();
+  const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
+  const curMo = new Date().getMonth();
+  let acumEntr = 0, acumDesp = 0;
+  mKeys2.slice(0, curMo+1).forEach(m => {
+    acumEntr += entradas.filter(e=>e.data.startsWith(m)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+    acumDesp += despesas.filter(d=>d.data.startsWith(m)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
+  });
+  const acumulado = acumEntr - acumDesp;
+  const rendEl = document.getElementById('d-rendimento');
+  if (rendEl) { rendEl.textContent = acumEntr>0||acumDesp>0 ? (acumulado>=0?'+ ':'')+'€ '+Math.abs(acumulado).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —'; rendEl.className = 'card-value '+(acumulado>=0?'text-eur':'text-danger'); }
+  // Fixas mês
+  const fixas2 = DB.get('sc_fixas',[]);
+  const totFixasEur = fixas2.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
+  const totFixasBrl = fixas2.filter(f=>f.moeda==='brl').reduce((s,f)=>s+f.valor,0);
+  set('d-fixas-mes', totFixasEur>0?'€ '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('d-fixas-sub', totFixasBrl>0?fixas2.filter(f=>f.moeda==='eur').length+' EUR · '+fixas2.filter(f=>f.moeda==='brl').length+' BRL':fixas2.length+' despesa(s) recorrente(s)');
+  // Saldo previsto = caixaIT + entradas ainda esperadas - saídas ainda esperadas
+  const saldoPrev = caixaIT + (entrMes - despMes);
+  set('d-saldo-prev', saldoPrev!==0?fe(saldoPrev):'€ —');
+  set('d-saldo-prev-sub', 'Caixa atual + DRE mês');
 }
 
 function updateEntrCards() {
@@ -4053,6 +4229,18 @@ function showDrillDown(tipo) {
       + '<div style="height:6px;"></div>'
       + drillRow('Caixa atual (contas EUR)', '€ '+caixaIT.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)')
       + '</div>';
+  } else if (tipo === 'fixas') {
+    title.textContent = 'Despesas fixas — mês atual';
+    const fixasList = DB.get('sc_fixas', []);
+    const fixEur = fixasList.filter(f=>f.moeda==='eur');
+    const fixBrl = fixasList.filter(f=>f.moeda==='brl');
+    let fhtml = '';
+    if (fixEur.length) { fhtml += '<div style="font-size:10px;color:#888;padding:4px 0 2px;font-weight:700;">EUR</div>'; fixEur.forEach(f=>{ fhtml+=drillRow(f.nome+' (dia '+f.dia+')', '- € '+f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--danger)'); }); fhtml+=drillRow('Total EUR', '- € '+fixEur.reduce((s,f)=>s+f.valor,0).toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true); }
+    if (fixBrl.length) { fhtml += '<div style="font-size:10px;color:#888;padding:4px 0 2px;font-weight:700;">BRL</div>'; fixBrl.forEach(f=>{ fhtml+=drillRow(f.nome+' (dia '+f.dia+')', '- R$ '+f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--danger)'); }); fhtml+=drillRow('Total BRL', '- R$ '+fixBrl.reduce((s,f)=>s+f.valor,0).toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true); }
+    if (!fixasList.length) fhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Nenhuma despesa fixa cadastrada.</div>';
+    body.innerHTML = fhtml;
+    modal.classList.add('open');
+    return;
   } else if (tipo === 'acumulado') {
     const now2 = new Date();
     const yr2 = now2.getFullYear();
@@ -4260,6 +4448,56 @@ const MONTHLY_ANALYSIS_LEGACY = {
   ], min: '€ 3.150', crit: '01/Jul', risco: 'Não' },
 };
 
+function calcConversao() {
+  const val = parseFloat(document.getElementById('conv-valor')?.value) || 0;
+  const from = document.getElementById('conv-from')?.value || 'eur';
+  const res = document.getElementById('conv-resultados');
+  const dica = document.getElementById('cv-dica');
+  const fx = fxRates;
+  const EURBRL = fx.EURBRL || 6.0;
+  const USDBRL = fx.USDBRL || 5.1;
+  const EURUSD = fx.EURUSD || (EURBRL / USDBRL);
+  // Atualizar displays de taxas
+  const cv_eurbrl = document.getElementById('cv-eurbrl'); if(cv_eurbrl) cv_eurbrl.textContent = EURBRL.toFixed(2);
+  const cv_usdbrl = document.getElementById('cv-usdbrl'); if(cv_usdbrl) cv_usdbrl.textContent = USDBRL.toFixed(2);
+  const cv_eurusd = document.getElementById('cv-eurusd'); if(cv_eurusd) cv_eurusd.textContent = EURUSD.toFixed(4);
+  if (!res) return;
+  if (!val || val <= 0) { res.innerHTML = ''; if(dica) dica.textContent = 'Informe um valor acima para ver a análise de quando converter.'; return; }
+  let pairs = [];
+  if (from === 'eur') {
+    pairs = [
+      { to:'BRL', val: val * EURBRL, sym:'R$', nota:'Taxa mercado Wise (~0,5% spread)' },
+      { to:'USD', val: val * EURUSD, sym:'US$', nota:'EUR/USD referência' },
+    ];
+  } else if (from === 'brl') {
+    pairs = [
+      { to:'EUR', val: val / EURBRL, sym:'€', nota:'Transferência via Wise' },
+      { to:'USD', val: val / USDBRL, sym:'US$', nota:'USD/BRL referência' },
+    ];
+  } else { // usd
+    pairs = [
+      { to:'EUR', val: val / EURUSD, sym:'€', nota:'USD→EUR' },
+      { to:'BRL', val: val * USDBRL, sym:'R$', nota:'USD→BRL' },
+    ];
+  }
+  res.innerHTML = pairs.map(p =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:700;font-size:13px;">${from.toUpperCase()} → ${p.to}</div>
+        <div style="font-size:10px;color:#888;">${p.nota}</div>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:var(--eur-c);">${p.sym} ${p.val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+    </div>`
+  ).join('');
+  // Dica sobre momento de conversão
+  const dicaTxt = from === 'eur'
+    ? (EURBRL > 6.0 ? '🟢 EUR/BRL acima de 6,00 — bom momento para converter EUR→BRL. Wise cobra ~0,5% de spread.' : '🟡 EUR/BRL abaixo de 6,00 — espere uma alta antes de converter para BRL se possível.')
+    : from === 'brl'
+    ? (EURBRL < 5.8 ? '🟢 EUR/BRL baixo — boa hora para comprar EUR com seu BRL.' : '🟡 EUR/BRL alto — comprar EUR agora está mais caro. Analise a necessidade.')
+    : '💡 Use o Wise para as melhores taxas com menor spread. Compare com o câmbio interbancário acima.';
+  if (dica) dica.textContent = dicaTxt;
+}
+
 function updateDailyAnalysis(mes) {
   const wrap = document.getElementById('daily-analysis-wrap');
   if (!wrap) return;
@@ -4329,7 +4567,7 @@ function updateCharts() {
   });
   const catVals = CAT_ORDER.map(c => Math.round((catSums[c] || 0) * 100) / 100);
 
-  ['dashCatChart', 'despCatChart', 'resumoCatChart'].forEach(id => {
+  ['dashCatChart', 'despCatChart'].forEach(id => {
     if (charts[id]) {
       charts[id].data.datasets[0].data = catVals;
       charts[id].update('none');
@@ -4351,7 +4589,7 @@ function updateCharts() {
 
   cfBarLine('miniCfChart', entrByMo.slice(0,6), despByMo.slice(0,6), dreByMo.slice(0,6), MESES_SHORT.slice(0,6), Math.min(curIdx, 5));
   cfBarLine('cfMainChart', entrByMo, despByMo, dreByMo, MESES_SHORT, curIdx);
-  cfBarLine('resumoCfChart', entrByMo, despByMo, dreByMo, MESES_SHORT, curIdx);
+  // resumoCfChart removido (aba Resumo excluída)
 
   // DRE table
   updateDRETable(entrByMo, despByMo, curIdx);
@@ -4360,39 +4598,66 @@ function updateCharts() {
 function updateDRETable(entrByMo, despByMo, curIdx) {
   const tbody = document.getElementById('dre-body');
   if (!tbody) return;
-  // Update DRE_ROWS vals in-place
-  const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === 'eur');
-  const totFixas = fixas.reduce((s, f) => s + f.valor, 0);
-  const fixasByMo = Array.from({length:12}, (_, i) => i <= curIdx ? totFixas : 0);
-  const varByMo = despByMo.map((d, i) => Math.max(0, d - fixasByMo[i]));
-  const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
   const yr2 = new Date().getFullYear();
   const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
   const cfMoedaDRE = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
+  // Fixas: respeita dataInicio/dataFim para cada mês (inclusive futuros)
+  const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === cfMoedaDRE);
+  const fixasByMo = mKeys2.map(moMes => {
+    return fixas.filter(f => {
+      const startOk = !f.dataInicio || f.dataInicio <= moMes;
+      const endOk = !f.dataFim || f.dataFim >= moMes.slice(0,7);
+      return startOk && endOk;
+    }).reduce((s,f) => s+f.valor, 0);
+  });
+  // CC por tipo
   const fatByMo  = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='fatura').reduce((s,d)=>s+d.valor,0));
   const debByMo  = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&(d.pagamento==='debito'||!d.pagamento)).reduce((s,d)=>s+d.valor,0));
   const credByMo = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='credito').reduce((s,d)=>s+d.valor,0));
+  // Variáveis = Fatura + Débito (crédito não afeta caixa do mês)
   const varRealByMo = fatByMo.map((f,i) => f + debByMo[i]);
-  const dreByMo2 = entrByMo.map((e, i) => e - fixasByMo[i] - varRealByMo[i]);
+  // Saída total = fixas + variáveis
+  const saidaByMo = varRealByMo.map((v,i) => v + fixasByMo[i]);
+  // DRE por mês
+  const dreByMo2 = entrByMo.map((e,i) => e - saidaByMo[i]);
+  // Crédito CC do mês vira fatura estimada do próximo mês
+  const fatEstimadaByMo = Array.from({length:12}, () => 0);
+  for (let i = 0; i < 11; i++) fatEstimadaByMo[i+1] = credByMo[i];
+  // CASCATA: saldo inicial e caixa final (a partir do mês atual)
+  const saldoInicial = getContasSaldoCalc(cfMoedaDRE);
+  const saldoIniByMo = Array.from({length:12}, () => 0);
+  const caixaFinalByMo = Array.from({length:12}, () => 0);
+  saldoIniByMo[curIdx] = saldoInicial;
+  for (let i = curIdx; i < 12; i++) {
+    caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
+    if (i < 11) saldoIniByMo[i+1] = caixaFinalByMo[i];
+  }
+  // Atualizar DRE_ROWS
+  DRE_ROWS[0].vals = saldoIniByMo;
   DRE_ROWS[1].vals = entrByMo;
-  DRE_ROWS[5].vals = varByMo.map((_,i)=>fixasByMo[i]+varRealByMo[i]);
+  DRE_ROWS[5].vals = saidaByMo;
   DRE_ROWS[6].vals = fixasByMo;
   DRE_ROWS[7].vals = varRealByMo;
   DRE_ROWS[8].vals = fatByMo;
   DRE_ROWS[9].vals = debByMo;
   DRE_ROWS[10].vals = credByMo;
   DRE_ROWS[11].vals = dreByMo2;
+  DRE_ROWS[12].vals = caixaFinalByMo;
+  // TOTAL e % (meses realizados)
   const realized = vals => vals.slice(0, curIdx+1).reduce((s,v)=>s+(v||0),0);
   const entrTot = realized(entrByMo);
+  DRE_ROWS[0].tot = null;
   DRE_ROWS[1].tot = Math.round(entrTot);
-  DRE_ROWS[5].tot = Math.round(realized(DRE_ROWS[5].vals));
+  DRE_ROWS[5].tot = Math.round(realized(saidaByMo));
   DRE_ROWS[6].tot = Math.round(realized(fixasByMo));
   DRE_ROWS[7].tot = Math.round(realized(varRealByMo));
   DRE_ROWS[8].tot = Math.round(realized(fatByMo));
   DRE_ROWS[9].tot = Math.round(realized(debByMo));
   DRE_ROWS[10].tot = Math.round(realized(credByMo));
   DRE_ROWS[11].tot = Math.round(realized(dreByMo2));
+  DRE_ROWS[12].tot = caixaFinalByMo[curIdx] ? Math.round(caixaFinalByMo[curIdx]) : 0;
   const pct = (v) => entrTot > 0 ? Math.round(Math.abs(v)/entrTot*100)+'%' : '—%';
+  DRE_ROWS[0].pct = '—';
   DRE_ROWS[1].pct = '100%';
   DRE_ROWS[5].pct = pct(DRE_ROWS[5].tot);
   DRE_ROWS[6].pct = pct(DRE_ROWS[6].tot);
@@ -4401,8 +4666,57 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   DRE_ROWS[9].pct = pct(DRE_ROWS[9].tot);
   DRE_ROWS[10].pct = pct(DRE_ROWS[10].tot);
   DRE_ROWS[11].pct = DRE_ROWS[11].tot >= 0 ? '+'+Math.round(DRE_ROWS[11].tot).toLocaleString('pt-BR') : Math.round(DRE_ROWS[11].tot).toLocaleString('pt-BR');
+  DRE_ROWS[12].pct = '—';
   tbody.innerHTML = '';
   buildDRETable();
+}
+
+// Breakdown de célula da DRE ao clicar
+function showDRETdDetail(rowIdx, moIdx) {
+  const yr = new Date().getFullYear();
+  const mKey = `${yr}-${String(moIdx+1).padStart(2,'0')}`;
+  const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesLabel = MESES[moIdx]+'/'+yr;
+  const row = DRE_ROWS[rowIdx];
+  const cfMoeda = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
+  const sym = cfMoeda === 'eur' ? '€' : 'R$';
+  const fmtV = v => sym+' '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  let dhtml = '';
+  if (rowIdx === 1) { // Entradas
+    const items = entradas.filter(e=>e.data&&e.data.startsWith(mKey)&&e.moeda===cfMoeda);
+    if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem entradas em '+mesLabel+'.</div>';
+    else { items.forEach(e=>{ dhtml+=drillRow(e.desc||e.tipo||'Entrada', fmtV(e.valor), 'var(--eur-c)'); }); dhtml+=drillRow('Total', fmtV(items.reduce((s,e)=>s+e.valor,0)), 'var(--gold)', true); }
+  } else if (rowIdx === 6) { // Fixas
+    const fixasList = DB.get('sc_fixas',[]).filter(f=>{
+      const startOk = !f.dataInicio||f.dataInicio<=mKey;
+      const endOk = !f.dataFim||f.dataFim>=mKey.slice(0,7);
+      return f.moeda===cfMoeda&&startOk&&endOk;
+    });
+    if (!fixasList.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas fixas em '+mesLabel+'.</div>';
+    else { fixasList.forEach(f=>{ dhtml+=drillRow(f.nome+' (dia '+f.dia+')', '- '+fmtV(f.valor), 'var(--danger)'); }); dhtml+=drillRow('Total', '- '+fmtV(fixasList.reduce((s,f)=>s+f.valor,0)), 'var(--gold)', true); }
+  } else if (rowIdx === 7) { // Variáveis Déb+Fat
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.pagamento!=='credito');
+    if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas variáveis em '+mesLabel+'.</div>';
+    else { items.forEach(d=>{ const pBadge = d.pagamento==='fatura'?'📄':d.pagamento==='credito'?'🪙':'💳'; dhtml+=drillRow(pBadge+' '+(d.desc||d.local||d.categoria||'Despesa'), '- '+fmtV(d.valor), 'var(--danger)'); }); dhtml+=drillRow('Total', '- '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--gold)', true); }
+  } else if (rowIdx === 8) { // Fatura CC
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.pagamento==='fatura');
+    if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem faturas CC em '+mesLabel+'.</div>';
+    else { items.forEach(d=>{ dhtml+=drillRow(d.desc||d.local||'Fatura CC', '- '+fmtV(d.valor), '#E24B4A'); }); dhtml+=drillRow('Total', '- '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--gold)', true); }
+  } else if (rowIdx === 9) { // Débito
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&(d.pagamento==='debito'||!d.pagamento));
+    if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas débito em '+mesLabel+'.</div>';
+    else { items.forEach(d=>{ dhtml+=drillRow(d.desc||d.local||d.categoria||'Débito', '- '+fmtV(d.valor), '#888'); }); dhtml+=drillRow('Total', '- '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--gold)', true); }
+  } else if (rowIdx === 10) { // Crédito CC
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.pagamento==='credito');
+    if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem crédito CC em '+mesLabel+'. (Crédito CC não impacta caixa do mês.)</div>';
+    else { dhtml += '<div style="font-size:11px;color:var(--warn);margin-bottom:8px;">ℹ️ Crédito CC não sai do caixa em '+mesLabel+' — vira fatura estimada do mês seguinte.</div>'; items.forEach(d=>{ dhtml+=drillRow(d.desc||d.local||d.categoria||'Crédito CC', '~ '+fmtV(d.valor), 'var(--warn)'); }); dhtml+=drillRow('Fatura estimada próx. mês', '~ '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--warn)', true); }
+  } else {
+    dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Valor: '+sym+' '+Math.abs(Math.round(row.vals[moIdx]||0)).toLocaleString('pt-BR')+'</div>';
+  }
+  const modal = document.getElementById('modal-drill');
+  document.getElementById('modal-drill-title').textContent = (row.desc||'').trim()+' — '+mesLabel;
+  document.getElementById('modal-drill-body').innerHTML = dhtml;
+  modal.classList.add('open');
 }
 
 // ============================================================
@@ -4556,6 +4870,109 @@ function forceRefresh() {
 
 
 // ============================================================
+// ============================================================
+// INVESTIMENTOS LIVRES — CRUD
+// ============================================================
+function openInvLivreModal(idx) {
+  const items = DB.get('sc_inv_livre', []);
+  const item = idx >= 0 ? items[idx] : null;
+  document.getElementById('inv-livre-idx').value = idx;
+  document.getElementById('inv-livre-modal-title').textContent = item ? 'Editar investimento' : 'Novo investimento';
+  document.getElementById('il-nome').value = item ? item.nome : '';
+  document.getElementById('il-moeda').value = item ? item.moeda : 'brl';
+  document.getElementById('il-tipo').value = item ? item.tipo : 'Renda Fixa';
+  document.getElementById('il-banco').value = item ? item.banco : '';
+  document.getElementById('il-valor').value = item ? item.valor : '';
+  document.getElementById('il-taxa').value = item ? (item.taxa||'') : '';
+  document.getElementById('il-venc').value = item ? (item.venc||'') : '';
+  document.getElementById('il-obs').value = item ? (item.obs||'') : '';
+  document.getElementById('modal-inv-livre').classList.add('open');
+}
+
+function saveInvLivre() {
+  const nome = document.getElementById('il-nome').value.trim();
+  const valor = parseFloat(document.getElementById('il-valor').value) || 0;
+  if (!nome || !valor) { alert('Preencha nome e valor.'); return; }
+  const items = DB.get('sc_inv_livre', []);
+  const idx = parseInt(document.getElementById('inv-livre-idx').value);
+  const item = {
+    nome, valor,
+    moeda: document.getElementById('il-moeda').value,
+    tipo: document.getElementById('il-tipo').value,
+    banco: document.getElementById('il-banco').value.trim(),
+    taxa: parseFloat(document.getElementById('il-taxa').value) || 0,
+    venc: document.getElementById('il-venc').value || '',
+    obs: document.getElementById('il-obs').value.trim(),
+  };
+  if (idx >= 0) items[idx] = item; else items.push(item);
+  DB.set('sc_inv_livre', items);
+  document.getElementById('modal-inv-livre').classList.remove('open');
+  renderInvLivre();
+  renderInvestimentosValues();
+}
+
+function deleteInvLivre(idx) {
+  if (!confirm('Excluir este investimento?')) return;
+  const items = DB.get('sc_inv_livre', []);
+  items.splice(idx, 1);
+  DB.set('sc_inv_livre', items);
+  renderInvLivre();
+  renderInvestimentosValues();
+}
+
+function renderInvLivre() {
+  const wrap = document.getElementById('inv-livre-wrap');
+  const totaisEl = document.getElementById('inv-livre-totais');
+  if (!wrap) return;
+  const items = DB.get('sc_inv_livre', []);
+  const emptyEl = document.getElementById('inv-livre-empty');
+  if (!items.length) {
+    wrap.innerHTML = '<div class="alert-card info" style="margin-bottom:0;" id="inv-livre-empty"><div class="alert-icon">💼</div><div class="alert-body"><div class="alert-title">Nenhum investimento cadastrado</div><div class="alert-text">Adicione investimentos — escolha moeda, banco, tipo e taxa livremente.</div></div></div>';
+    if (totaisEl) totaisEl.style.display = 'none';
+    return;
+  }
+  const fx = fxRates.EURBRL || 6.0;
+  const TIPO_COLORS = { 'Renda Fixa':'#1D9E75','Tesouro':'#378ADD','Fundos':'#7F77DD','Ações':'#C9A227','FIIs':'#EF9F27','Cripto':'#E24B4A','Previdência':'#5DCAA5','Outro':'#888' };
+  const SYM = { brl:'R$', eur:'€', usd:'US$' };
+  let totEur=0, totBrl=0;
+  wrap.innerHTML = items.map((item, i) => {
+    const sym = SYM[item.moeda] || 'R$';
+    const col = TIPO_COLORS[item.tipo] || '#888';
+    const mFlag = item.moeda==='eur'?'🇮🇹':item.moeda==='usd'?'🇺🇸':'🇧🇷';
+    const taxaStr = item.taxa ? ` · ${item.taxa}% a.a.` : '';
+    const vencStr = item.venc ? ` · venc. ${item.venc.slice(0,7)}` : '';
+    const bancoStr = item.banco ? ` <span style="color:#888;">${item.banco}</span>` : '';
+    if (item.moeda==='eur') totEur+=item.valor;
+    else if (item.moeda==='brl') totBrl+=item.valor;
+    else totBrl += item.valor*fx; // usd approx
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+          <span style="font-size:10px;background:${col}22;color:${col};border-radius:4px;padding:1px 6px;font-weight:700;">${item.tipo}</span>
+          <span>${mFlag}</span>
+          <span style="font-weight:700;font-size:13px;">${item.nome}</span>
+        </div>
+        <div style="font-size:11px;color:#888;">${bancoStr}${taxaStr}${vencStr}</div>
+        ${item.obs ? `<div style="font-size:10px;color:#aaa;margin-top:1px;">${item.obs}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-weight:700;color:${col};font-size:14px;">${sym} ${item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        <button onclick="openInvLivreModal(${i})" style="background:none;border:none;cursor:pointer;font-size:13px;">✏️</button>
+        <button onclick="deleteInvLivre(${i})" style="background:none;border:none;cursor:pointer;font-size:13px;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  // Totais
+  if (totaisEl) {
+    totaisEl.style.display = 'block';
+    const totGeral = totBrl + (totEur * fx);
+    const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+    s('inv-livre-tot-eur', totEur>0?'€ '+totEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ 0');
+    s('inv-livre-tot-brl', totBrl>0?'R$ '+totBrl.toLocaleString('pt-BR',{minimumFractionDigits:2}):'R$ 0');
+    s('inv-livre-tot-geral', 'R$ '+Math.round(totGeral).toLocaleString('pt-BR'));
+  }
+}
+
 // FINANCIAMENTOS — editable debt analysis
 // ============================================================
 function openFinancModal(idx) {
