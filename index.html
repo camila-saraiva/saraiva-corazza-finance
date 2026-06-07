@@ -2157,8 +2157,8 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <input class="finput" type="month" id="fixa-inicio" />
         </div>
         <div class="fg">
-          <div class="flabel">Data fim (opcional)</div>
-          <input class="finput" type="month" id="fixa-fim" placeholder="Deixe em branco se contínuo" />
+          <div class="flabel">Data fim — deixe vazio se for contínuo</div>
+          <input class="finput" type="month" id="fixa-fim" />
         </div>
       </div>
     </div>
@@ -4714,12 +4714,15 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const yr2 = new Date().getFullYear();
   const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
   const cfMoedaDRE = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
+  // Helper: compare YYYY-MM strings numerically (handles any year digit count)
+  const cmpYM = (a, b) => { const [ay,am] = a.split('-').map(Number); const [by,bm] = b.split('-').map(Number); return ay !== by ? ay-by : am-bm; };
   // Fixas: respeita dataInicio/dataFim para cada mês (inclusive futuros)
   const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === cfMoedaDRE);
   const fixasByMo = mKeys2.map(moMes => {
+    const moMes7 = moMes.slice(0,7);
     return fixas.filter(f => {
-      const startOk = !f.dataInicio || f.dataInicio <= moMes;
-      const endOk = !f.dataFim || f.dataFim >= moMes.slice(0,7);
+      const startOk = !f.dataInicio || cmpYM(f.dataInicio, moMes7) <= 0;
+      const endOk = !f.dataFim || cmpYM(f.dataFim, moMes7) >= 0;
       return startOk && endOk;
     }).reduce((s,f) => s+f.valor, 0);
   });
@@ -4740,6 +4743,11 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const saldoInicial = getContasSaldoCalc(cfMoedaDRE);
   const saldoIniByMo = Array.from({length:12}, () => 0);
   const caixaFinalByMo = Array.from({length:12}, () => 0);
+  // Meses passados: caixa final = DRE resultado (entradas - saídas realizadas)
+  for (let i = 0; i < curIdx; i++) {
+    caixaFinalByMo[i] = entrByMo[i] - saidaByMo[i];
+  }
+  // Mês atual e futuros: cascata com saldo real das contas
   saldoIniByMo[curIdx] = saldoInicial;
   for (let i = curIdx; i < 12; i++) {
     caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
@@ -4800,9 +4808,11 @@ function showDRETdDetail(rowIdx, moIdx) {
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem entradas em '+mesLabel+'.</div>';
     else { items.forEach(e=>{ dhtml+=drillRow(e.desc||e.tipo||'Entrada', fmtV(e.valor), 'var(--eur-c)'); }); dhtml+=drillRow('Total', fmtV(items.reduce((s,e)=>s+e.valor,0)), 'var(--gold)', true); }
   } else if (rowIdx === 6) { // Fixas
+    const cmpYM2 = (a,b)=>{ const [ay,am]=a.split('-').map(Number); const [by,bm]=b.split('-').map(Number); return ay!==by?ay-by:am-bm; };
     const fixasList = DB.get('sc_fixas',[]).filter(f=>{
-      const startOk = !f.dataInicio||f.dataInicio<=mKey;
-      const endOk = !f.dataFim||f.dataFim>=mKey.slice(0,7);
+      const mk7 = mKey.slice(0,7);
+      const startOk = !f.dataInicio||cmpYM2(f.dataInicio,mk7)<=0;
+      const endOk = !f.dataFim||cmpYM2(f.dataFim,mk7)>=0;
       return f.moeda===cfMoeda&&startOk&&endOk;
     });
     if (!fixasList.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas fixas em '+mesLabel+'.</div>';
