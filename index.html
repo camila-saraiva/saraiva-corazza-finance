@@ -1010,10 +1010,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     <canvas id="miniCfChart" height="130"></canvas>
   </div>
 
-  <div class="section-title">Contas &amp; saldos
-    <button class="btn-secondary" onclick="openContaModal(-1)">+ Adicionar</button>
-  </div>
-  <div class="card-white mb12" id="contas-list"></div>
+
 </div>
 
 <!-- ==================== RESUMO ==================== -->
@@ -1082,6 +1079,15 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ==================== DESPESAS ==================== -->
 <div class="tab-content" id="tab-despesas">
+  <div class="section-title">Despesas fixas mensais
+    <button class="btn-secondary" onclick="openFixaModal(-1)">+ Adicionar</button>
+  </div>
+  <div class="fixas-card" id="fixas-list">
+    <div style="text-align:center;color:#aaa;padding:16px;font-size:13px;" id="fixas-empty">
+      Nenhuma despesa fixa cadastrada. Clique em "+ Adicionar".
+    </div>
+  </div>
+
   <div class="section-title">Nova despesa
     <button class="btn-secondary" onclick="toggleForm('desp-form')">+ Adicionar</button>
   </div>
@@ -1135,6 +1141,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <option value="viagem">Viagem</option>
           <option value="assinaturas">Assinaturas</option>
           <option value="casa">Casa / Moradia</option>
+          <option value="imposto">Imposto</option>
           <option value="outros">Outros</option>
         </select>
       </div>
@@ -1217,6 +1224,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <option value="viagem">Viagem</option>
       <option value="assinaturas">Assinaturas</option>
       <option value="casa">Casa</option>
+      <option value="imposto">Imposto</option>
       <option value="outros">Outros</option>
     </select>
     <select id="ft-moeda" onchange="renderDespTable()">
@@ -1295,6 +1303,11 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ==================== ENTRADAS ==================== -->
 <div class="tab-content" id="tab-entradas">
+  <div class="section-title">Contas &amp; saldos
+    <button class="btn-secondary" onclick="openContaModal(-1)">+ Adicionar</button>
+  </div>
+  <div class="card-white mb12" id="contas-list"></div>
+
   <div class="cards-row">
     <div class="card-dark">
       <div class="card-label">Entradas mês</div>
@@ -1516,14 +1529,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
   </div>
 
-  <div class="section-title">Despesas fixas mensais
-    <button class="btn-secondary" onclick="openFixaModal(-1)">+ Adicionar</button>
-  </div>
-  <div class="fixas-card" id="fixas-list">
-    <div style="text-align:center;color:#aaa;padding:16px;font-size:13px;" id="fixas-empty">
-      Nenhuma despesa fixa cadastrada. Clique em "+ Adicionar".
-    </div>
-  </div>
+
 </div>
 
 <!-- ==================== INVESTIMENTOS ==================== -->
@@ -2350,6 +2356,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <option value="viagem">Viagem</option>
           <option value="assinaturas">Assinaturas</option>
           <option value="casa">Casa</option>
+          <option value="imposto">Imposto</option>
           <option value="outros">Outros</option>
         </select>
       </div>
@@ -3432,11 +3439,11 @@ function buildDRETable() {
 const CAT_NAMES = {
   alimentacao:'Alimentação', mercado:'Mercado', roupas:'Roupas/Compras',
   saude:'Saúde', transporte:'Transporte', viagem:'Viagem',
-  assinaturas:'Assinaturas', casa:'Casa', outros:'Outros'
+  assinaturas:'Assinaturas', casa:'Casa', imposto:'Imposto', outros:'Outros'
 };
 const CAT_COLORS = {
   alimentacao:'#E8A44A', mercado:'#5DCAA5', roupas:'#C9A0FF', saude:'#F07E7E',
-  transporte:'#7EC8F0', viagem:'#FAC775', assinaturas:'#B0C4DE', casa:'#C9A227', outros:'#AAAAAA'
+  transporte:'#7EC8F0', viagem:'#FAC775', assinaturas:'#B0C4DE', casa:'#C9A227', imposto:'#E05C5C', outros:'#AAAAAA'
 };
 
 function getDespFiltered() {
@@ -4669,9 +4676,9 @@ function updateCharts() {
   // Determine active moeda from country flag
   const cfMoeda = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
   // Category data from real despesas
-  const CAT_ORDER = ['alimentacao','mercado','assinaturas','auto','compras','saude','transporte','viagem','outros'];
-  const CAT_LABELS_LIST = ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Outros'];
-  const CAT_COLORS_LIST = ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#888'];
+  const CAT_ORDER = ['alimentacao','mercado','assinaturas','auto','compras','saude','transporte','viagem','imposto','outros'];
+  const CAT_LABELS_LIST = ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Imposto','Outros'];
+  const CAT_COLORS_LIST = ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#E05C5C','#888'];
   const catSums = {};
   CAT_ORDER.forEach(c => { catSums[c] = 0; });
   despesas.filter(d => d.moeda === cfMoeda).forEach(d => {
@@ -4727,28 +4734,36 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
       return startOk && endOk;
     }).reduce((s,f) => s+f.valor, 0);
   });
-  // CC por tipo
-  const fatByMo  = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='fatura').reduce((s,d)=>s+d.valor,0));
-  const debByMo  = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&(d.pagamento==='debito'||!d.pagamento)).reduce((s,d)=>s+d.valor,0));
-  const credByMo = mKeys2.map(m => despesas.filter(d=>d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.pagamento==='credito').reduce((s,d)=>s+d.valor,0));
+  // FIX 4: despesas tipo='fix' vão para linha Fixas; tipo!='fix' vão para Variáveis
+  const fixDespByMo = mKeys2.map(m => despesas.filter(d=>d.data&&d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.tipo==='fix').reduce((s,d)=>s+d.valor,0));
+  const fatByMo  = mKeys2.map(m => despesas.filter(d=>d.data&&d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.tipo!=='fix'&&d.pagamento==='fatura').reduce((s,d)=>s+d.valor,0));
+  const debByMo  = mKeys2.map(m => despesas.filter(d=>d.data&&d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.tipo!=='fix'&&(d.pagamento==='debito'||!d.pagamento)).reduce((s,d)=>s+d.valor,0));
+  const credByMo = mKeys2.map(m => despesas.filter(d=>d.data&&d.data.startsWith(m)&&d.moeda===cfMoedaDRE&&d.tipo!=='fix'&&d.pagamento==='credito').reduce((s,d)=>s+d.valor,0));
+  // Fixas totais = sc_fixas + despesas tipo='fix'
+  const fixasTotalByMo = fixasByMo.map((v,i) => v + fixDespByMo[i]);
   // Variáveis = Fatura + Débito (crédito não afeta caixa do mês)
   const varRealByMo = fatByMo.map((f,i) => f + debByMo[i]);
   // Saída total = fixas + variáveis + crédito CC (apenas meses futuros, para simulação)
-  const saidaByMo = varRealByMo.map((v,i) => v + fixasByMo[i] + (i > curIdx ? credByMo[i] : 0));
+  const saidaByMo = varRealByMo.map((v,i) => v + fixasTotalByMo[i] + (i > curIdx ? credByMo[i] : 0));
   // DRE por mês
   const dreByMo2 = entrByMo.map((e,i) => e - saidaByMo[i]);
   // Crédito CC do mês vira fatura estimada do próximo mês
   const fatEstimadaByMo = Array.from({length:12}, () => 0);
   for (let i = 0; i < 11; i++) fatEstimadaByMo[i+1] = credByMo[i];
-  // CASCATA: saldo inicial e caixa final (a partir do mês atual)
+  // FIX 2: distribuir entradas em Salário / Bônus+Extra / Outros
+  const salByMo  = mKeys2.map(m => entradas.filter(e=>e.data&&e.data.startsWith(m)&&e.moeda===cfMoedaDRE&&/sal[aá]rio/i.test(e.tipo||'')).reduce((s,e)=>s+e.valor,0));
+  const bonByMo  = mKeys2.map(m => entradas.filter(e=>e.data&&e.data.startsWith(m)&&e.moeda===cfMoedaDRE&&/b[oô]nus|freelance|extra|renda|rendimento/i.test(e.tipo||'')).reduce((s,e)=>s+e.valor,0));
+  const outrEntrByMo = mKeys2.map(m => entradas.filter(e=>e.data&&e.data.startsWith(m)&&e.moeda===cfMoedaDRE&&!/sal[aá]rio|b[oô]nus|freelance|extra|renda|rendimento/i.test(e.tipo||'')).reduce((s,e)=>s+e.valor,0));
+  // FIX 3: CASCATA incluindo meses passados (saldo real entra apenas no mês atual)
   const saldoInicial = getContasSaldoCalc(cfMoedaDRE);
   const saldoIniByMo = Array.from({length:12}, () => 0);
   const caixaFinalByMo = Array.from({length:12}, () => 0);
-  // Meses passados: caixa final = DRE resultado (entradas - saídas realizadas)
+  // Meses passados: cascata começando com 0 em janeiro
   for (let i = 0; i < curIdx; i++) {
-    caixaFinalByMo[i] = entrByMo[i] - saidaByMo[i];
+    caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
+    if (i + 1 < curIdx) saldoIniByMo[i+1] = caixaFinalByMo[i];
   }
-  // Mês atual e futuros: cascata com saldo real das contas
+  // Mês atual e futuros: saldo real das contas redefine a cascata
   saldoIniByMo[curIdx] = saldoInicial;
   for (let i = curIdx; i < 12; i++) {
     caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
@@ -4757,8 +4772,11 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   // Atualizar DRE_ROWS
   DRE_ROWS[0].vals = saldoIniByMo;
   DRE_ROWS[1].vals = entrByMo;
+  DRE_ROWS[2].vals = salByMo;
+  DRE_ROWS[3].vals = bonByMo;
+  DRE_ROWS[4].vals = outrEntrByMo;
   DRE_ROWS[5].vals = saidaByMo;
-  DRE_ROWS[6].vals = fixasByMo;
+  DRE_ROWS[6].vals = fixasTotalByMo;
   DRE_ROWS[7].vals = varRealByMo;
   DRE_ROWS[8].vals = fatByMo;
   DRE_ROWS[9].vals = debByMo;
@@ -4770,8 +4788,11 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const entrTot = realized(entrByMo);
   DRE_ROWS[0].tot = null;
   DRE_ROWS[1].tot = Math.round(entrTot);
+  DRE_ROWS[2].tot = Math.round(realized(salByMo));
+  DRE_ROWS[3].tot = Math.round(realized(bonByMo));
+  DRE_ROWS[4].tot = Math.round(realized(outrEntrByMo));
   DRE_ROWS[5].tot = Math.round(realized(saidaByMo));
-  DRE_ROWS[6].tot = Math.round(realized(fixasByMo));
+  DRE_ROWS[6].tot = Math.round(realized(fixasTotalByMo));
   DRE_ROWS[7].tot = Math.round(realized(varRealByMo));
   DRE_ROWS[8].tot = Math.round(realized(fatByMo));
   DRE_ROWS[9].tot = Math.round(realized(debByMo));
@@ -4781,6 +4802,9 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const pct = (v) => entrTot > 0 ? Math.round(Math.abs(v)/entrTot*100)+'%' : '—%';
   DRE_ROWS[0].pct = '—';
   DRE_ROWS[1].pct = '100%';
+  DRE_ROWS[2].pct = pct(DRE_ROWS[2].tot);
+  DRE_ROWS[3].pct = pct(DRE_ROWS[3].tot);
+  DRE_ROWS[4].pct = pct(DRE_ROWS[4].tot);
   DRE_ROWS[5].pct = pct(DRE_ROWS[5].tot);
   DRE_ROWS[6].pct = pct(DRE_ROWS[6].tot);
   DRE_ROWS[7].pct = pct(DRE_ROWS[7].tot);
