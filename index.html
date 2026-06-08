@@ -3411,21 +3411,25 @@ function buildDRETable() {
       const isFut = i > curIdx;
       let cls = isCur ? 'cell-cur' : '';
       let style = isFut ? 'opacity:0.5;font-style:italic;' : '';
-      const canClick = clickableRows.includes(rowIdx2) && v > 0;
+      const canClick = clickableRows.includes(rowIdx2) && v !== 0 && v !== null;
       if (canClick) style += 'cursor:pointer;';
-      let display = v === null ? '—' : Math.abs(Math.round(v)).toLocaleString('pt-BR');
+      const fmt = n => Math.abs(n).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+      let display = v === null ? '—' : fmt(v);
       if (r.cls === 'tr-dre') {
         cls += v >= 0 ? ' dre-pos' : ' dre-neg';
-        display = (v >= 0 ? '+' : '-') + ' ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+        display = (v >= 0 ? '+' : '-') + ' ' + fmt(v);
+      } else if (r.cls === 'tr-caixa' || r.cls === 'tr-saldo') {
+        if (v < 0) { cls += ' dre-neg'; display = '- ' + fmt(v); }
+        else display = fmt(v);
       } else if (r.tipo === '~') {
-        display = v > 0 ? '~ ' + Math.abs(Math.round(v)).toLocaleString('pt-BR') : '—';
+        display = v > 0 ? '~ ' + fmt(v) : '—';
       } else if (r.tipo === '-') {
-        display = '- ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+        display = '- ' + fmt(v);
       }
       const onclk = canClick ? ` onclick="showDRETdDetail(${rowIdx2},${i})"` : '';
       html += `<td class="${cls}" style="${style}"${onclk}>${display}</td>`;
     });
-    html += `<td class="tot">${r.tot !== null ? r.tot.toLocaleString('pt-BR') : '—'}</td>`;
+    html += `<td class="tot">${r.tot !== null ? r.tot.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—'}</td>`;
     html += `<td style="color:#aaa;font-size:10px;">${r.pct !== null ? r.pct : ''}</td>`;
     tr.innerHTML = html;
     tbody.appendChild(tr);
@@ -4763,8 +4767,9 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
     caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
     if (i + 1 < curIdx) saldoIniByMo[i+1] = caixaFinalByMo[i];
   }
-  // Mês atual e futuros: saldo real das contas redefine a cascata
-  saldoIniByMo[curIdx] = saldoInicial;
+  // Mês atual e futuros: saldo real se houver contas cadastradas; senão, continua cascata
+  const contasMoedaDRE = DB.get('sc_contas', []).filter(c => c.moeda === cfMoedaDRE);
+  saldoIniByMo[curIdx] = contasMoedaDRE.length > 0 ? saldoInicial : (curIdx > 0 ? caixaFinalByMo[curIdx-1] : 0);
   for (let i = curIdx; i < 12; i++) {
     caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
     if (i < 11) saldoIniByMo[i+1] = caixaFinalByMo[i];
@@ -4799,7 +4804,7 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   DRE_ROWS[10].tot = Math.round(realized(credByMo));
   DRE_ROWS[11].tot = Math.round(realized(dreByMo2));
   DRE_ROWS[12].tot = caixaFinalByMo[curIdx] ? Math.round(caixaFinalByMo[curIdx]) : 0;
-  const pct = (v) => entrTot > 0 ? Math.round(Math.abs(v)/entrTot*100)+'%' : '—%';
+  const pct = (v) => entrTot > 0 ? (Math.abs(v)/entrTot*100).toFixed(1)+'%' : '—%';
   DRE_ROWS[0].pct = '—';
   DRE_ROWS[1].pct = '100%';
   DRE_ROWS[2].pct = pct(DRE_ROWS[2].tot);
@@ -4811,7 +4816,7 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   DRE_ROWS[8].pct = pct(DRE_ROWS[8].tot);
   DRE_ROWS[9].pct = pct(DRE_ROWS[9].tot);
   DRE_ROWS[10].pct = pct(DRE_ROWS[10].tot);
-  DRE_ROWS[11].pct = DRE_ROWS[11].tot >= 0 ? '+'+Math.round(DRE_ROWS[11].tot).toLocaleString('pt-BR') : Math.round(DRE_ROWS[11].tot).toLocaleString('pt-BR');
+  DRE_ROWS[11].pct = (DRE_ROWS[11].tot >= 0 ? '+' : '') + DRE_ROWS[11].tot.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
   DRE_ROWS[12].pct = '—';
   tbody.innerHTML = '';
   buildDRETable();
@@ -4832,7 +4837,7 @@ function showDRETdDetail(rowIdx, moIdx) {
     const items = entradas.filter(e=>e.data&&e.data.startsWith(mKey)&&e.moeda===cfMoeda);
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem entradas em '+mesLabel+'.</div>';
     else { items.forEach(e=>{ dhtml+=drillRow(e.desc||e.tipo||'Entrada', fmtV(e.valor), 'var(--eur-c)'); }); dhtml+=drillRow('Total', fmtV(items.reduce((s,e)=>s+e.valor,0)), 'var(--gold)', true); }
-  } else if (rowIdx === 6) { // Fixas
+  } else if (rowIdx === 6) { // Fixas (sc_fixas cadastradas + despesas tipo='fix')
     const normYM2 = d=>{ if(!d)return''; if(d.includes('/')){ const p=d.split('/'); return p.length===3?p[2]+'-'+p[1].padStart(2,'0'):''; } return d.slice(0,7); };
     const cmpYM2 = (a,b)=>{ const na=normYM2(a),nb=normYM2(b); const [ay,am]=na.split('-').map(Number); const [by,bm]=nb.split('-').map(Number); return ay!==by?ay-by:am-bm; };
     const fixasList = DB.get('sc_fixas',[]).filter(f=>{
@@ -4841,22 +4846,28 @@ function showDRETdDetail(rowIdx, moIdx) {
       const endOk = !f.dataFim||cmpYM2(f.dataFim,mk7)>=0;
       return f.moeda===cfMoeda&&startOk&&endOk;
     });
-    if (!fixasList.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas fixas em '+mesLabel+'.</div>';
-    else { fixasList.forEach(f=>{ dhtml+=drillRow(f.nome+' (dia '+f.dia+')', '- '+fmtV(f.valor), 'var(--danger)'); }); dhtml+=drillRow('Total', '- '+fmtV(fixasList.reduce((s,f)=>s+f.valor,0)), 'var(--gold)', true); }
-  } else if (rowIdx === 7) { // Variáveis Déb+Fat
-    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.pagamento!=='credito');
+    const fixDespList = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.tipo==='fix');
+    const totalFixas = fixasList.reduce((s,f)=>s+f.valor,0) + fixDespList.reduce((s,d)=>s+d.valor,0);
+    if (!fixasList.length && !fixDespList.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas fixas em '+mesLabel+'.</div>';
+    else {
+      fixasList.forEach(f=>{ dhtml+=drillRow('🔒 '+f.nome+' (dia '+f.dia+')', '- '+fmtV(f.valor), 'var(--danger)'); });
+      fixDespList.forEach(d=>{ dhtml+=drillRow('🔁 '+(d.desc||d.local||d.categoria||'Fixa'), '- '+fmtV(d.valor), 'var(--danger)'); });
+      dhtml+=drillRow('Total', '- '+fmtV(totalFixas), 'var(--gold)', true);
+    }
+  } else if (rowIdx === 7) { // Variáveis Déb+Fat (excl. tipo='fix')
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.tipo!=='fix'&&d.pagamento!=='credito');
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas variáveis em '+mesLabel+'.</div>';
     else { items.forEach(d=>{ const pBadge = d.pagamento==='fatura'?'📄':d.pagamento==='credito'?'🪙':'💳'; dhtml+=drillRow(pBadge+' '+(d.desc||d.local||d.categoria||'Despesa'), '- '+fmtV(d.valor), 'var(--danger)'); }); dhtml+=drillRow('Total', '- '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--gold)', true); }
-  } else if (rowIdx === 8) { // Fatura CC
-    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.pagamento==='fatura');
+  } else if (rowIdx === 8) { // Fatura CC (excl. tipo='fix')
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.tipo!=='fix'&&d.pagamento==='fatura');
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem faturas CC em '+mesLabel+'.</div>';
     else { items.forEach(d=>{ dhtml+=drillRow(d.desc||d.local||'Fatura CC', '- '+fmtV(d.valor), '#E24B4A'); }); dhtml+=drillRow('Total', '- '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--gold)', true); }
-  } else if (rowIdx === 9) { // Débito
-    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&(d.pagamento==='debito'||!d.pagamento));
+  } else if (rowIdx === 9) { // Débito (excl. tipo='fix')
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.tipo!=='fix'&&(d.pagamento==='debito'||!d.pagamento));
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem despesas débito em '+mesLabel+'.</div>';
     else { items.forEach(d=>{ dhtml+=drillRow(d.desc||d.local||d.categoria||'Débito', '- '+fmtV(d.valor), '#888'); }); dhtml+=drillRow('Total', '- '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--gold)', true); }
-  } else if (rowIdx === 10) { // Crédito CC
-    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.pagamento==='credito');
+  } else if (rowIdx === 10) { // Crédito CC (excl. tipo='fix')
+    const items = despesas.filter(d=>d.data&&d.data.startsWith(mKey)&&d.moeda===cfMoeda&&d.tipo!=='fix'&&d.pagamento==='credito');
     if (!items.length) dhtml = '<div style="color:#aaa;padding:14px;text-align:center;">Sem crédito CC em '+mesLabel+'. (Crédito CC não impacta caixa do mês.)</div>';
     else { dhtml += '<div style="font-size:11px;color:var(--warn);margin-bottom:8px;">ℹ️ Crédito CC não sai do caixa em '+mesLabel+' — vira fatura estimada do mês seguinte.</div>'; items.forEach(d=>{ dhtml+=drillRow(d.desc||d.local||d.categoria||'Crédito CC', '~ '+fmtV(d.valor), 'var(--warn)'); }); dhtml+=drillRow('Fatura estimada próx. mês', '~ '+fmtV(items.reduce((s,d)=>s+d.valor,0)), 'var(--warn)', true); }
   } else {
