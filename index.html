@@ -874,11 +874,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="logo-text">Saraiva &amp; Corazza</div>
     </div>
     <div class="header-right">
-      <div class="country-toggle">
-        <button class="ct-btn active" onclick="setCountry('it',this)">🇮🇹</button>
-        <button class="ct-btn" onclick="setCountry('br',this)">🇧🇷</button>
-        <button class="ct-btn" onclick="setCountry('gl',this)">🌍</button>
-      </div>
+      <!-- bandeirinhas removidas; filtros por moeda em cada aba -->
       <button class="settings-btn" onclick="openSettings()" title="Configurações">⚙️</button>
       <span class="sync-badge off" id="sync-badge" title="Status da sincronização">⚡ offline</span>
     </div>
@@ -952,7 +948,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
   </div>
   <div class="cards-row">
     <div class="card-dark">
-      <div class="card-label">Fixas /mês</div>
+      <div class="card-label">Despesas fixas /mês</div>
       <div class="card-value text-danger" id="d-fixas-mes" onclick="showDrillDown('fixas')" style="cursor:pointer;">€ —</div>
       <div class="card-sub" id="d-fixas-sub">Despesas recorrentes</div>
     </div>
@@ -978,17 +974,22 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="hbar-row">
         <div class="hbar-label">Reserva emergência</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-reserva-fill" style="width:0%;background:var(--warn);"></div></div>
-        <div class="hbar-val" id="hbar-reserva-val">—</div>
+        <div class="hbar-val" id="hbar-reserva-val" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Comprom. renda</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-comprom-fill" style="width:0%;background:var(--danger);"></div></div>
-        <div class="hbar-val" id="hbar-comprom-val">—</div>
+        <div class="hbar-val" id="hbar-comprom-val" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
-        <div class="hbar-label">Patrimônio</div>
+        <div class="hbar-label">Taxa poupança</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupc-fill" style="width:0%;background:var(--eur-c);"></div></div>
+        <div class="hbar-val" id="hbar-poupc-val" style="min-width:30px;text-align:right;">—</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">Diversificação</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-poupanca-fill" style="width:0%;background:var(--gold);"></div></div>
-        <div class="hbar-val" id="hbar-poupanca-val" style="font-size:9px;">—</div>
+        <div class="hbar-val" id="hbar-poupanca-val" style="min-width:30px;text-align:right;font-size:9px;">—</div>
       </div>
     </div>
   </div>
@@ -1387,6 +1388,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="fg">
         <div class="flabel">Tipo</div>
         <select class="finput" id="entr-tipo">
+          <option value="reserva">💰 Reserva de emergência</option>
           <option>Salário</option>
           <option>Bônus</option>
           <option>Rendimento investimento</option>
@@ -1501,7 +1503,13 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ==================== CASHFLOW ==================== -->
 <div class="tab-content" id="tab-cashflow">
-  <div class="section-title">Entradas vs Saídas — 12 meses</div>
+  <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+  <span>Entradas vs Saídas — 12 meses</span>
+  <div style="display:flex;gap:4px;">
+    <button id="cf-pill-eur" onclick="setCfMoeda('eur')" style="padding:3px 10px;border-radius:12px;border:none;cursor:pointer;font-size:11px;background:var(--gold);color:var(--navy);font-weight:700;">€ EUR</button>
+    <button id="cf-pill-brl" onclick="setCfMoeda('brl')" style="padding:3px 10px;border-radius:12px;border:none;cursor:pointer;font-size:11px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);">R$ BRL</button>
+  </div>
+</div>
   <div class="chart-card">
     <div class="chart-legend">
       <div class="leg-item"><div class="leg-dot" style="background:var(--eur-c);"></div>Entradas</div>
@@ -1714,23 +1722,23 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="health-sub" id="health-sub-2">Adicione entradas e despesas para calcular sua saúde financeira.</div>
       <div class="hbar-row">
         <div class="hbar-label">Reserva emergência</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:21%;background:var(--warn);"></div></div>
-        <div class="hbar-val text-warn">21%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-reserva-fill-2" style="width:0%;background:var(--warn);"></div></div>
+        <div class="hbar-val" id="hbar-reserva-val-2" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Comprom. renda</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:68%;background:var(--danger);"></div></div>
-        <div class="hbar-val text-danger">68%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-comprom-fill-2" style="width:0%;background:var(--danger);"></div></div>
+        <div class="hbar-val" id="hbar-comprom-val-2" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Taxa poupança</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:32%;background:var(--eur-c);"></div></div>
-        <div class="hbar-val text-eur">32%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupc-fill-2" style="width:0%;background:var(--eur-c);"></div></div>
+        <div class="hbar-val" id="hbar-poupc-val-2" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Diversificação</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:60%;background:var(--gold);"></div></div>
-        <div class="hbar-val text-gold">60%</div>
+        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupanca-fill-2" style="width:0%;background:var(--gold);"></div></div>
+        <div class="hbar-val" id="hbar-poupanca-val-2" style="min-width:30px;text-align:right;">—</div>
       </div>
     </div>
   </div>
@@ -2686,6 +2694,14 @@ function showTab(tabId, navEl, bnEl) {
 // ============================================================
 // COUNTRY SWITCHER
 // ============================================================
+function setCfMoeda(m) {
+  currentCountry = m === 'brl' ? 'br' : 'it';
+  const eurBtn = document.getElementById('cf-pill-eur');
+  const brlBtn = document.getElementById('cf-pill-brl');
+  if (eurBtn) { eurBtn.style.background = m === 'eur' ? 'var(--gold)' : 'rgba(255,255,255,0.1)'; eurBtn.style.color = m === 'eur' ? 'var(--navy)' : 'rgba(255,255,255,0.6)'; eurBtn.style.fontWeight = m === 'eur' ? '700' : '400'; }
+  if (brlBtn) { brlBtn.style.background = m === 'brl' ? 'var(--brl-c,#378ADD)' : 'rgba(255,255,255,0.1)'; brlBtn.style.color = m === 'brl' ? '#fff' : 'rgba(255,255,255,0.6)'; brlBtn.style.fontWeight = m === 'brl' ? '700' : '400'; }
+  updateCharts();
+}
 function setCountry(c, el) {
   currentCountry = c;
   document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
@@ -2919,6 +2935,18 @@ function setEntrRec(r) {
   entrRec = r;
   document.getElementById('ef-fix').classList.toggle('active', r === 'fix');
   document.getElementById('ef-var').classList.toggle('active', r === 'var');
+}
+function atualizarMetaReserva() {
+  const reservaEntradas = (DB.get('sc_entradas') || []).filter(e => (e.tipo||'').toLowerCase().includes('reserva') && e.moeda === 'eur');
+  const totalReserva = reservaEntradas.reduce((s,e) => s+e.valor, 0);
+  const metasArr = DB.get('sc_metas', []);
+  const idx = metasArr.findIndex(m => /reserva|emerg/i.test(m.nome||''));
+  if (idx >= 0 && totalReserva > 0) {
+    metasArr[idx] = { ...metasArr[idx], atual: totalReserva };
+    DB.set('sc_metas', metasArr);
+    metas = metasArr;
+    if (typeof renderMetas === 'function') renderMetas();
+  }
 }
 function saveEntrada() {
   const valor = parseFloat(document.getElementById('entr-valor').value);
@@ -3269,9 +3297,9 @@ CF_DATA.dre = CF_DATA.entradas.map((e,i) => e - CF_DATA.saidas[i]);
 CF_DATA.caixa = CF_DATA.saldoIni.map((s,i) => s + CF_DATA.dre[i]);
 
 const CAT_DATA = {
-  labels: ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Outros'],
-  values: [0,0,0,0,0,0,0,0,0],
-  colors: ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#888'],
+  labels: ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Contas/Cartões','Imposto','Outros'],
+  values: [0,0,0,0,0,0,0,0,0,0,0],
+  colors: ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#3B82F6','#E05C5C','#888'],
 };
 
 // ============================================================
@@ -3318,7 +3346,7 @@ function cfBarLine(id, entradas, saidas, dre, meses, curIdx) {
       ]
     },
     options: {
-      responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => `€ ${Math.abs(Math.round(c.parsed.y)).toLocaleString('pt-BR')}` } } },
+      responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => { const v=Math.round(c.parsed.y); return (c.dataset.label?c.dataset.label+': ':'') + (v<0?'- ':'') + '€ '+Math.abs(v).toLocaleString('pt-BR'); } } } },
       scales: {
         x:{ grid:{display:false}, ticks:{font:{size:10}} },
         y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:10}, callback: v => `€${(v/1000).toFixed(0)}k`} }
@@ -3342,7 +3370,7 @@ function catDoughnut(id, labels, values, colors) {
       responsive:true, cutout:'55%',
       plugins: {
         legend:{ position:'right', labels:{font:{size:10}, boxWidth:12, padding:8} },
-        tooltip:{ callbacks:{ label: c => `${c.label}: € ${c.parsed.toLocaleString('pt-BR')}` } }
+        tooltip:{ callbacks:{ label: c => { const sym = (typeof currentCountry!=='undefined'&&currentCountry==='br')?'R$ ':'€ '; return `${c.label||''}: ${sym}${c.parsed.toLocaleString('pt-BR',{minimumFractionDigits:2})}`; } } }
       }
     }
   });
@@ -4268,12 +4296,12 @@ function updateDashCards() {
   const acumSaida = dreAcum.saida.slice(0, curMo+1).reduce((s,v)=>s+v, 0);
   const acumulado = acumEntr - acumSaida;
   const rendEl = document.getElementById('d-rendimento');
-  if (rendEl) { rendEl.textContent = acumEntr>0||acumDesp>0 ? (acumulado>=0?'+ ':'')+'€ '+Math.abs(acumulado).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —'; rendEl.className = 'card-value '+(acumulado>=0?'text-eur':'text-danger'); }
+  if (rendEl) { rendEl.textContent = acumEntr>0||acumSaida>0 ? (acumulado>=0?'+ ':'- ')+'€ '+Math.abs(acumulado).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —'; rendEl.className = 'card-value '+(acumulado>=0?'text-eur':'text-danger'); }
   // Fixas mês
   const fixas2 = DB.get('sc_fixas',[]);
   const totFixasEur = fixas2.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
   const totFixasBrl = fixas2.filter(f=>f.moeda==='brl').reduce((s,f)=>s+f.valor,0);
-  set('d-fixas-mes', totFixasEur>0?'€ '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
+  set('d-fixas-mes', totFixasEur>0?'- € '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
   set('d-fixas-sub', totFixasBrl>0?fixas2.filter(f=>f.moeda==='eur').length+' EUR · '+fixas2.filter(f=>f.moeda==='brl').length+' BRL':fixas2.length+' despesa(s) recorrente(s)');
   // Saldo previsto = caixa final do mês atual (DRE cascade)
   const saldoPrev = dreEUR.caixaFinal[curMo];
@@ -4458,6 +4486,7 @@ function deleteEntradaById(id) {
   if (!confirm('Excluir esta entrada?')) return;
   entradas = entradas.filter(x => x.id !== id);
   DB.set('sc_entradas', entradas);
+  atualizarMetaReserva();
   renderEntrList(); renderEntrTable(); buildRelPreview();
 }
 
@@ -4930,7 +4959,9 @@ function updateCharts() {
 
   ['dashCatChart', 'despCatChart'].forEach(id => {
     if (charts[id]) {
+      charts[id].data.labels = CAT_LABELS_LIST;
       charts[id].data.datasets[0].data = catVals;
+      charts[id].data.datasets[0].backgroundColor = CAT_COLORS_LIST;
       charts[id].update('none');
     } else {
       catDoughnut(id, CAT_LABELS_LIST, catVals, CAT_COLORS_LIST);
@@ -5150,8 +5181,8 @@ function updateSaudeFinanceira() {
     ['health-score-num','health-score-num-2'].forEach(id => setTxt(id, '—'));
     ['health-title-1','health-title-2'].forEach(id => setTxt(id, 'Configure seus dados'));
     ['health-sub-1','health-sub-2'].forEach(id => setTxt(id, 'Adicione entradas, despesas e contas para calcular sua saúde financeira.'));
-    ['hbar-reserva-val','hbar-comprom-val','hbar-poupanca-val'].forEach(id => setTxt(id, '—'));
-    ['hbar-reserva-fill','hbar-comprom-fill','hbar-poupanca-fill'].forEach(id => { const e = document.getElementById(id); if (e) e.style.width = '0%'; });
+    ['hbar-reserva-val','hbar-comprom-val','hbar-poupc-val','hbar-poupanca-val','hbar-reserva-val-2','hbar-comprom-val-2','hbar-poupc-val-2','hbar-poupanca-val-2'].forEach(id => setTxt(id, '—'));
+    ['hbar-reserva-fill','hbar-comprom-fill','hbar-poupc-fill','hbar-poupanca-fill','hbar-reserva-fill-2','hbar-comprom-fill-2','hbar-poupc-fill-2','hbar-poupanca-fill-2'].forEach(id => { const e = document.getElementById(id); if (e) e.style.width = '0%'; });
     return;
   }
 
@@ -5197,9 +5228,26 @@ function updateSaudeFinanceira() {
   setTxt('health-score-num', score); setTxt('health-score-num-2', score);
   setTxt('health-title-1', title);   setTxt('health-title-2', title);
   setTxt('health-sub-1', sub);       setTxt('health-sub-2', sub);
-  setTxt('hbar-reserva-val', reservaPct + '%'); setW('hbar-reserva-fill', reservaPct + '%');
-  setTxt('hbar-comprom-val', compromPct + '%'); setW('hbar-comprom-fill', compromPct + '%');
-  setTxt('hbar-poupanca-val', patrimBRL2>0?'R$ '+Math.round(patrimBRL2/1000)+'k':'—'); setW('hbar-poupanca-fill', patrimPct + '%');
+  // Poupança % = realEntrH > realSaidaH → % saved
+  const poupancaBarPct = Math.max(0, Math.min(Math.round((realEntrH - realSaidaH) / Math.max(1, realEntrH) * 100), 100));
+  const setColor = (id, color) => { const e = document.getElementById(id); if (e) e.style.color = color; };
+  // Update both dashboard and estratégia cards
+  [['hbar-reserva-val','hbar-reserva-fill'],['hbar-reserva-val-2','hbar-reserva-fill-2']].forEach(([v,f]) => {
+    setTxt(v, reservaPct + '%'); setW(f, reservaPct + '%');
+    setColor(v, reservaPct < 30 ? 'var(--warn)' : 'var(--eur-c)');
+  });
+  [['hbar-comprom-val','hbar-comprom-fill'],['hbar-comprom-val-2','hbar-comprom-fill-2']].forEach(([v,f]) => {
+    setTxt(v, compromPct + '%'); setW(f, compromPct + '%');
+    setColor(v, compromPct > 70 ? 'var(--danger)' : compromPct > 50 ? 'var(--warn)' : 'var(--eur-c)');
+  });
+  [['hbar-poupc-val','hbar-poupc-fill'],['hbar-poupc-val-2','hbar-poupc-fill-2']].forEach(([v,f]) => {
+    setTxt(v, poupancaBarPct + '%'); setW(f, poupancaBarPct + '%');
+    setColor(v, poupancaBarPct > 15 ? 'var(--eur-c)' : 'var(--warn)');
+  });
+  [['hbar-poupanca-val','hbar-poupanca-fill'],['hbar-poupanca-val-2','hbar-poupanca-fill-2']].forEach(([v,f]) => {
+    setTxt(v, patrimBRL2>0?'R$ '+Math.round(patrimBRL2/1000)+'k':'—'); setW(f, patrimPct + '%');
+    setColor(v, 'var(--gold)');
+  });
 
   // Update score donuts
   [{ id:'scoreChart', cid:'scoreChart' }, { id:'estratScore', cid:'estratScore' }].forEach(({id}) => {
@@ -5551,7 +5599,7 @@ function refreshSimuladorOptions() {
   const sel = document.getElementById('sim-divida');
   if (!sel) return;
   const financ = DB.get('sc_financiamentos', []);
-  const eurFinanc = financ.filter(f => f.moeda === 'eur' && f.parcela && f.saldo);
+  const eurFinanc = financ.filter(f => f.moeda === 'eur' && f.parcela);
   if (!eurFinanc.length) {
     sel.innerHTML = '<option value="">-- adicione financiamentos na seção acima --</option>';
     return;
@@ -5560,10 +5608,16 @@ function refreshSimuladorOptions() {
     const taxaAa = parseFloat(f.taxa) || 0;
     const taxaMensal = taxaAa / 12 / 100;
     const prazo = f.mesesRestantes || f.prazo || 0;
+    const parcela = parseFloat(f.parcela) || 0;
+    // Se o saldo armazenado for menor que 2 parcelas (dado inválido), recomputa via fórmula PV
+    const pvComputed = taxaMensal > 0 && prazo > 0
+      ? parcela * (1 - Math.pow(1 + taxaMensal, -prazo)) / taxaMensal
+      : parcela * prazo;
+    const saldoEfetivo = (f.saldo && f.saldo > parcela * 2) ? parseFloat(f.saldo) : Math.round(pvComputed);
     const sym = f.moeda === 'eur' ? '€' : 'R$';
-    const label = `${f.nome} (${taxaAa > 0 ? taxaAa + '% a.a.' : 'sem juros'}) · ${sym} ${parseFloat(f.parcela).toLocaleString('pt-BR')}/mês`;
-    // value format: saldo,taxaMensal,parcela,prazo
-    return `<option value="${f.saldo},${taxaMensal},${f.parcela},${prazo}">${label}</option>`;
+    const label = `${f.nome} (${taxaAa > 0 ? taxaAa + '% a.a.' : 'sem juros'}) · ${sym} ${parcela.toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês`;
+    // value format: saldoEfetivo,taxaMensal,parcela,prazo
+    return `<option value="${saldoEfetivo},${taxaMensal},${parcela},${prazo}">${label}</option>`;
   }).join('');
   calcAntecipar();
 }
