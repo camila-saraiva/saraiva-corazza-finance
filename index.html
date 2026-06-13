@@ -4759,20 +4759,33 @@ function updateDRETable(entrByMo, despByMo, curIdx) {
   const bonByMo  = mKeys2.map(m => entradas.filter(e=>e.data&&e.data.startsWith(m)&&e.moeda===cfMoedaDRE&&/b[oô]nus|freelance|extra|renda|rendimento/i.test(e.tipo||'')).reduce((s,e)=>s+e.valor,0));
   const outrEntrByMo = mKeys2.map(m => entradas.filter(e=>e.data&&e.data.startsWith(m)&&e.moeda===cfMoedaDRE&&!/sal[aá]rio|b[oô]nus|freelance|extra|renda|rendimento/i.test(e.tipo||'')).reduce((s,e)=>s+e.valor,0));
   // FIX 3: CASCATA incluindo meses passados (saldo real entra apenas no mês atual)
-  const saldoInicial = getContasSaldoCalc(cfMoedaDRE);
   const saldoIniByMo = Array.from({length:12}, () => 0);
   const caixaFinalByMo = Array.from({length:12}, () => 0);
-  // Meses passados: cascata começando com 0 em janeiro
-  for (let i = 0; i < curIdx; i++) {
-    caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
-    if (i + 1 < curIdx) saldoIniByMo[i+1] = caixaFinalByMo[i];
+  // CASCATA: ponto de partida = saldo base das contas na data de referência cadastrada
+  const contasMoedaDRE = (DB.get('sc_contas', null) ? getContasArr() : []).filter(c => c.moeda === cfMoedaDRE);
+  let saldoRefIdx = 0, saldoRefVal = 0;
+  if (contasMoedaDRE.length > 0) {
+    const refDates = contasMoedaDRE.map(c => c.dataRef).filter(d => d && d.length === 10);
+    if (refDates.length > 0) {
+      const earliestRef = refDates.sort()[0];
+      const refYear = parseInt(earliestRef.slice(0,4));
+      const refMo   = parseInt(earliestRef.slice(5,7)) - 1; // 0-based
+      const yrNow   = new Date().getFullYear();
+      saldoRefIdx = refYear === yrNow ? Math.max(0, refMo) : 0;
+    }
+    // Saldo BASE (sem projeção de transações — a projeção é feita pelo DRE ao cascatear)
+    saldoRefVal = contasMoedaDRE.reduce((s, c) => s + (c.saldo || 0), 0);
   }
-  // Mês atual e futuros: saldo real se houver contas cadastradas; senão, continua cascata
-  const contasMoedaDRE = DB.get('sc_contas', []).filter(c => c.moeda === cfMoedaDRE);
-  saldoIniByMo[curIdx] = contasMoedaDRE.length > 0 ? saldoInicial : (curIdx > 0 ? caixaFinalByMo[curIdx-1] : 0);
-  for (let i = curIdx; i < 12; i++) {
+  // Cascata a partir do mês de referência até Dezembro
+  saldoIniByMo[saldoRefIdx] = saldoRefVal;
+  for (let i = saldoRefIdx; i < 12; i++) {
     caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
     if (i < 11) saldoIniByMo[i+1] = caixaFinalByMo[i];
+  }
+  // Meses antes do mês de referência (se houver): cascata simples sem saldo inicial
+  for (let i = 0; i < saldoRefIdx; i++) {
+    caixaFinalByMo[i] = saldoIniByMo[i] + entrByMo[i] - saidaByMo[i];
+    if (i + 1 < saldoRefIdx) saldoIniByMo[i+1] = caixaFinalByMo[i];
   }
   // Atualizar DRE_ROWS
   DRE_ROWS[0].vals = saldoIniByMo;
