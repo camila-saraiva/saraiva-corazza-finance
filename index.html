@@ -957,7 +957,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
     <div class="card-dark">
       <div class="card-label">Saldo previsto</div>
-      <div class="card-value text-eur" id="d-saldo-prev" onclick="showDrillDown('caixa')" style="cursor:pointer;">€ —</div>
+      <div class="card-value text-eur" id="d-saldo-prev" onclick="showDrillDown('saldoprev')" style="cursor:pointer;">€ —</div>
       <div class="card-sub" id="d-saldo-prev-sub">Caixa final estimado</div>
     </div>
   </div>
@@ -975,19 +975,14 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="health-title" id="health-title-1">Configure seus dados</div>
       <div class="health-sub" id="health-sub-1">Adicione entradas e despesas para calcular sua saúde financeira.</div>
       <div class="hbar-row">
-        <div class="hbar-label">Reserva emergência</div>
+        <div class="hbar-label">Reserva / Patrimônio</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-reserva-fill" style="width:0%;background:var(--warn);"></div></div>
         <div class="hbar-val" id="hbar-reserva-val" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
-        <div class="hbar-label">Comprom. renda</div>
+        <div class="hbar-label">Comprom. anual</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-comprom-fill" style="width:0%;background:var(--danger);"></div></div>
         <div class="hbar-val" id="hbar-comprom-val" style="min-width:30px;text-align:right;">—</div>
-      </div>
-      <div class="hbar-row">
-        <div class="hbar-label">Taxa poupança</div>
-        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupc-fill" style="width:0%;background:var(--eur-c);"></div></div>
-        <div class="hbar-val" id="hbar-poupc-val" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Diversificação</div>
@@ -1718,19 +1713,14 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       <div class="health-title" id="health-title-2">Configure seus dados</div>
       <div class="health-sub" id="health-sub-2">Adicione entradas e despesas para calcular sua saúde financeira.</div>
       <div class="hbar-row">
-        <div class="hbar-label">Reserva emergência</div>
+        <div class="hbar-label">Reserva / Patrimônio</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-reserva-fill-2" style="width:0%;background:var(--warn);"></div></div>
         <div class="hbar-val" id="hbar-reserva-val-2" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
-        <div class="hbar-label">Comprom. renda</div>
+        <div class="hbar-label">Comprom. anual</div>
         <div class="hbar-track"><div class="hbar-fill" id="hbar-comprom-fill-2" style="width:0%;background:var(--danger);"></div></div>
         <div class="hbar-val" id="hbar-comprom-val-2" style="min-width:30px;text-align:right;">—</div>
-      </div>
-      <div class="hbar-row">
-        <div class="hbar-label">Taxa poupança</div>
-        <div class="hbar-track"><div class="hbar-fill" id="hbar-poupc-fill-2" style="width:0%;background:var(--eur-c);"></div></div>
-        <div class="hbar-val" id="hbar-poupc-val-2" style="min-width:30px;text-align:right;">—</div>
       </div>
       <div class="hbar-row">
         <div class="hbar-label">Diversificação</div>
@@ -2882,14 +2872,20 @@ function saveDespesa() {
   toggleForm('desp-form');
 }
 
+let _despShowAll = false;
+function toggleDespAll() {
+  _despShowAll = !_despShowAll;
+  renderDespList();
+}
 function renderDespList() {
   const list = document.getElementById('desp-list');
   if (!list) return;
-  list.querySelectorAll('.list-row').forEach(r => r.remove());
+  list.querySelectorAll('.list-row,.list-toggle-btn').forEach(r => r.remove());
   const emptyEl = document.getElementById('desp-empty');
   const moedaFiltro = currentCountry === 'br' ? 'brl' : 'eur';
-  const items = despesas.filter(d => d.moeda === moedaFiltro).slice().reverse().slice(0, 20);
-  if (!items.length) { if (emptyEl) emptyEl.style.display = 'flex'; return; }
+  const all = despesas.filter(d => d.moeda === moedaFiltro).slice().reverse();
+  const items = _despShowAll ? all : all.slice(0, 5);
+  if (!all.length) { if (emptyEl) emptyEl.style.display = 'flex'; return; }
   if (emptyEl) emptyEl.style.display = 'none';
   items.forEach(item => {
     const div = document.createElement('div'); div.className = 'list-row';
@@ -2903,16 +2899,30 @@ function renderDespList() {
     div.innerHTML = '<div class="list-dot" style="background:'+col+';"></div><div class="list-info"><div class="list-desc">'+(item.desc||item.categoria)+'</div><div class="list-sub">'+item.data+' · '+item.conta+' · <span style="color:'+titCol+';">'+titName+'</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"><div class="list-badge '+(item.tipo==='fix'?'badge-fix':'badge-var')+'">'+tipoLabel+'</div><div class="list-val neg">- '+sym+' '+item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
     list.appendChild(div);
   });
+  if (all.length > 5) {
+    const btn = document.createElement('div');
+    btn.className = 'list-toggle-btn';
+    btn.style = 'text-align:center;padding:10px;font-size:12px;color:var(--eur-c);cursor:pointer;font-weight:600;';
+    btn.textContent = _despShowAll ? '▲ Ver menos' : '▼ Ver todas (' + all.length + ')';
+    btn.onclick = toggleDespAll;
+    list.appendChild(btn);
+  }
 }
 
+let _entrShowAll = false;
+function toggleEntrAll() {
+  _entrShowAll = !_entrShowAll;
+  renderEntrList();
+}
 function renderEntrList() {
   const list = document.getElementById('entr-list');
   if (!list) return;
-  list.querySelectorAll('.list-row').forEach(r => r.remove());
+  list.querySelectorAll('.list-row,.list-toggle-btn').forEach(r => r.remove());
   const emptyEl = document.getElementById('entr-empty');
   const moedaFiltro = currentCountry === 'br' ? 'brl' : 'eur';
-  const items = entradas.filter(e => e.moeda === moedaFiltro).slice().reverse().slice(0, 10);
-  if (!items.length) { if (emptyEl) emptyEl.style.display = 'flex'; return; }
+  const all = entradas.filter(e => e.moeda === moedaFiltro).slice().reverse();
+  const items = _entrShowAll ? all : all.slice(0, 5);
+  if (!all.length) { if (emptyEl) emptyEl.style.display = 'flex'; return; }
   if (emptyEl) emptyEl.style.display = 'none';
   items.forEach(item => {
     const div = document.createElement('div'); div.className = 'list-row';
@@ -2923,6 +2933,14 @@ function renderEntrList() {
     div.innerHTML = '<div class="list-dot" style="background:'+col+';"></div><div class="list-info"><div class="list-desc">'+(item.desc||item.tipo||'Entrada')+'</div><div class="list-sub">'+item.data+' · '+item.conta+' · <span style="color:'+titCol+';">'+titName+'</span></div></div><div class="list-val pos">+ '+sym+' '+item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>';
     list.appendChild(div);
   });
+  if (all.length > 5) {
+    const btn = document.createElement('div');
+    btn.className = 'list-toggle-btn';
+    btn.style = 'text-align:center;padding:10px;font-size:12px;color:var(--eur-c);cursor:pointer;font-weight:600;';
+    btn.textContent = _entrShowAll ? '▲ Ver menos' : '▼ Ver todas (' + all.length + ')';
+    btn.onclick = toggleEntrAll;
+    list.appendChild(btn);
+  }
 }
 
 function filterDespMonth(v) {}
@@ -4520,28 +4538,33 @@ function showDrillDown(tipo) {
     const contas = getContasArr();
     const eurContas = contas.filter(c => c.moeda === 'eur');
     const brlContas = contas.filter(c => c.moeda === 'brl');
+    const curMoCx = new Date().getMonth();
+    const yrCx = new Date().getFullYear();
+    const MESES_CX = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const dreCx = computeDRECascade('eur');
+    const caixaEstEUR = dreCx.saldoIni[curMoCx];
+    const baseSumEUR = eurContas.reduce((s,c)=>s+(c.saldo||0),0);
     title.textContent = '💰 Caixa Total — Distribuição';
     let html = '<div style="padding:12px 0;">';
-    const fmtDate2 = d => { if (!d || d.length < 10) return ''; const [y,mm,dd] = d.split('-'); return `${dd}/${mm}/${y}`; };
     if (eurContas.length) {
       eurContas.forEach(c => {
-        const sub = c.dataRef ? ` (em ${fmtDate2(c.dataRef)})` : '';
-        html += drillRow(c.nome+sub, '€ '+(c.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), c.cor||'var(--eur-c)');
+        const estAtual = baseSumEUR !== 0 ? caixaEstEUR * ((c.saldo||0) / baseSumEUR) : 0;
+        const sign = estAtual < 0 ? '- ' : '';
+        html += drillRow(c.nome + ' (est. ' + MESES_CX[curMoCx] + '/' + yrCx + ')', sign + '€ ' + Math.abs(estAtual).toLocaleString('pt-BR',{minimumFractionDigits:2}), c.cor||'var(--eur-c)');
       });
-      const totEur = eurContas.reduce((s,c)=>s+(c.saldo||0),0);
-      html += drillRow('Total EUR', '€ '+totEur.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
+      const sign = caixaEstEUR < 0 ? '- ' : '';
+      html += drillRow('Total EUR (DRE)', sign + '€ ' + Math.abs(caixaEstEUR).toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
     }
     if (brlContas.length) {
       if (eurContas.length) html += '<div style="height:6px;"></div>';
       brlContas.forEach(c => {
-        const sub = c.dataRef ? ` (em ${fmtDate2(c.dataRef)})` : '';
-        html += drillRow(c.nome+sub, 'R$ '+(c.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), c.cor||'var(--brl-c)');
+        html += drillRow(c.nome, 'R$ '+(c.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), c.cor||'var(--brl-c)');
       });
       const totBrl = brlContas.reduce((s,c)=>s+(c.saldo||0),0);
       html += drillRow('Total BRL', 'R$ '+totBrl.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
     }
     if (!eurContas.length && !brlContas.length) {
-      html += '<div style="text-align:center;color:#aaa;padding:16px;">Nenhuma conta cadastrada.<br>Adicione contas na aba Resumo.</div>';
+      html += '<div style="text-align:center;color:#aaa;padding:16px;">Nenhuma conta cadastrada.</div>';
     }
     html += '</div>';
     body.innerHTML = html;
@@ -4612,13 +4635,35 @@ function showDrillDown(tipo) {
     }
     dreRows += drillRow('Total acumulado', (totalAcum>=0?'+ ':'')+'€ '+totalAcum.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
     body.innerHTML = '<div style="padding:12px 0;">'+dreRows+'</div>';
+  } else if (tipo === 'saldoprev') {
+    const nowSP = new Date();
+    const curMoSP = nowSP.getMonth();
+    const yrSP = nowSP.getFullYear();
+    const MESES_SP = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const dreSP = computeDRECascade('eur');
+    title.textContent = '📅 Saldo Previsto — Projeção DRE';
+    const iniSP = dreSP.saldoIni[curMoSP];
+    const entrSP = dreSP.entr[curMoSP];
+    const saidaSP = dreSP.saida[curMoSP];
+    const finalSP = dreSP.caixaFinal[curMoSP];
+    const fmtSP = v => (v < 0 ? '- € ' : '€ ') + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
+    const colSP = v => v >= 0 ? 'var(--eur-c)' : 'var(--danger)';
+    body.innerHTML = '<div style="padding:12px 0;">'
+      + drillRow('Caixa início ' + MESES_SP[curMoSP] + '/' + yrSP, fmtSP(iniSP), colSP(iniSP))
+      + drillRow('Entradas previstas ' + MESES_SP[curMoSP], '+ € ' + entrSP.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--eur-c)')
+      + drillRow('Saídas previstas ' + MESES_SP[curMoSP], '- € ' + saidaSP.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--danger)')
+      + drillRow('Caixa final ' + MESES_SP[curMoSP] + '/' + yrSP, fmtSP(finalSP), colSP(finalSP), true)
+      + (curMoSP < 11 ? ('<div style="height:6px;"></div>' + drillRow('Próximo mês (' + MESES_SP[curMoSP+1] + ')', fmtSP(dreSP.caixaFinal[curMoSP+1]), colSP(dreSP.caixaFinal[curMoSP+1]))) : '')
+      + '</div>';
+    modal.classList.add('open');
+    return;
   } else if (tipo === 'patrimonio') {
     const inv = DB.get('sc_investimentos', {});
     const fx2 = fxRates.EURBRL || 6.18;
     const xp=inv.xp||0, xpRf=inv.xpRf||0, xpFundo=inv.xpFundo||0, xpAcoes=inv.xpAcoes||0, xpCripto=inv.xpCripto||0;
     const xpTotal = (xpRf+xpFundo+xpAcoes+xpCripto) || xp;
     const imovelBR = inv.imovelBr||0, imovelIT = inv.imovelIt||0;
-    const caixaIT = getContasSaldoCalc('eur'), caixaBR = getContasSaldoCalc('brl');
+    const dreP2 = computeDRECascade('eur'); const caixaIT = dreP2.saldoIni[new Date().getMonth()]; const caixaBR = getContasSaldoCalc('brl');
     const total = imovelBR + xpTotal + caixaBR + (imovelIT*fx2) + (caixaIT*fx2);
     title.textContent = '🏦 Patrimônio — Distribuição';
     body.innerHTML = '<div style="padding:12px 0;">'
@@ -5198,40 +5243,39 @@ function updateSaudeFinanceira() {
     ['health-score-num','health-score-num-2'].forEach(id => setTxt(id, '—'));
     ['health-title-1','health-title-2'].forEach(id => setTxt(id, 'Configure seus dados'));
     ['health-sub-1','health-sub-2'].forEach(id => setTxt(id, 'Adicione entradas, despesas e contas para calcular sua saúde financeira.'));
-    ['hbar-reserva-val','hbar-comprom-val','hbar-poupc-val','hbar-poupanca-val','hbar-reserva-val-2','hbar-comprom-val-2','hbar-poupc-val-2','hbar-poupanca-val-2'].forEach(id => setTxt(id, '—'));
-    ['hbar-reserva-fill','hbar-comprom-fill','hbar-poupc-fill','hbar-poupanca-fill','hbar-reserva-fill-2','hbar-comprom-fill-2','hbar-poupc-fill-2','hbar-poupanca-fill-2'].forEach(id => { const e = document.getElementById(id); if (e) e.style.width = '0%'; });
+    ['hbar-reserva-val','hbar-comprom-val','hbar-poupanca-val','hbar-reserva-val-2','hbar-comprom-val-2','hbar-poupanca-val-2'].forEach(id => setTxt(id, '—'));
+    ['hbar-reserva-fill','hbar-comprom-fill','hbar-poupanca-fill','hbar-reserva-fill-2','hbar-comprom-fill-2','hbar-poupanca-fill-2'].forEach(id => { const e = document.getElementById(id); if (e) e.style.width = '0%'; });
     return;
   }
 
   // Usa DRE cascade para valores corretos
   const dreHealth = computeDRECascade('eur');
   const curMoH = new Date().getMonth();
-  const caixaAtualH = dreHealth.saldoIni[curMoH]; // saldo inicio do mes atual
-  // Meta emergência: lê de sc_metas (fallback 5000)
-  const metaEmerg = (() => { const m = metas.find(x => /reserva|emerg/i.test(x.nome||'')); return m ? (m.obj||5000) : 5000; })();
-  const reservaPct = metaEmerg > 0 ? Math.max(0, Math.min(Math.round(caixaAtualH / metaEmerg * 100), 100)) : 0;
-  // Renda média: entradas realizadas / meses realizados (evita div por 0 em mês sem entrada)
-  const realEntrH = dreHealth.entr.slice(0, curMoH+1).reduce((s,v)=>s+v, 0);
-  const realSaidaH = dreHealth.saida.slice(0, curMoH+1).reduce((s,v)=>s+v, 0);
-  const mesesComEntr = dreHealth.entr.slice(0, curMoH+1).filter(v=>v>0).length;
-  const rendaRefH = mesesComEntr > 0 ? realEntrH / mesesComEntr : 0;
-  const compromPct = rendaRefH > 0 && totFixasEur > 0 ? Math.min(Math.round(totFixasEur / rendaRefH * 100), 100) : 0;
-  const poupancaPct = realEntrH > 0 ? Math.max(0, Math.min(Math.round((realEntrH - realSaidaH) / realEntrH * 100), 100)) : 0;
-  // Patrimônio total para barra
+  // Patrimônio total (em BRL) — imoveis + investimentos + caixa
   const fx2 = fxRates.EURBRL || 6.0;
   const inv2 = DB.get('sc_investimentos',{});
   const invLivre2 = DB.get('sc_inv_livre',[]);
+  const caixaEURH = dreHealth.saldoIni[curMoH];
   const patrimBRL2 = (inv2.imovelBr||0) + (inv2.xp||0)
     + invLivre2.filter(i=>i.moeda==='brl').reduce((s,i)=>s+i.valor,0)
     + invLivre2.filter(i=>i.moeda==='eur').reduce((s,i)=>s+i.valor,0)*fx2
-    + ((inv2.imovelIt||0) + dreSaude.saldoIni[new Date().getMonth()])*fx2;
+    + ((inv2.imovelIt||0) + caixaEURH)*fx2;
   const META_PATRIM = 2000000; // meta R$ 2M
   const patrimPct = Math.min(Math.round(patrimBRL2/META_PATRIM*100), 100);
+  // Reserva = entradas do tipo "Reserva de emergência" / patrimônio total
+  const reservaEntH = (DB.get('sc_entradas')||[]).filter(e=>/reserva|emerg/i.test(e.tipo||'')&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
+  const reservaBRL = reservaEntH * fx2;
+  const reservaPct = patrimBRL2 > 0 ? Math.max(0, Math.min(Math.round(reservaBRL / patrimBRL2 * 100), 100)) : 0;
+  // Comprometimento = fixas anuais / total ganho no ano (DRE)
+  const totalEntrAno = dreHealth.entr.reduce((s,v)=>s+v, 0);
+  const totalFixasAno = totFixasEur * 12;
+  const compromPct = totalEntrAno > 0 ? Math.min(Math.round(totalFixasAno / totalEntrAno * 100), 100) : 0;
+  const realEntrH = dreHealth.entr.slice(0, curMoH+1).reduce((s,v)=>s+v, 0);
+  const realSaidaH = dreHealth.saida.slice(0, curMoH+1).reduce((s,v)=>s+v, 0);
 
-  const reservaScore  = reservaPct * 0.25;
-  const compromScore  = compromPct > 0 ? Math.max(0, (100 - compromPct)) * 0.45 : 45;
-  const poupancaScore = poupancaPct * 0.30;
-  const score = Math.round(reservaScore + compromScore + poupancaScore);
+  const reservaScore  = reservaPct * 0.40;
+  const compromScore  = compromPct > 0 ? Math.max(0, (100 - compromPct)) * 0.60 : 60;
+  const score = Math.round(reservaScore + compromScore);
 
   let title, sub;
   if (score >= 80)      { title = 'Excelente 🏆'; sub = 'Finanças bem equilibradas. Continue assim!'; }
@@ -5256,10 +5300,6 @@ function updateSaudeFinanceira() {
   [['hbar-comprom-val','hbar-comprom-fill'],['hbar-comprom-val-2','hbar-comprom-fill-2']].forEach(([v,f]) => {
     setTxt(v, compromPct + '%'); setW(f, compromPct + '%');
     setColor(v, compromPct > 70 ? 'var(--danger)' : compromPct > 50 ? 'var(--warn)' : 'var(--eur-c)');
-  });
-  [['hbar-poupc-val','hbar-poupc-fill'],['hbar-poupc-val-2','hbar-poupc-fill-2']].forEach(([v,f]) => {
-    setTxt(v, poupancaBarPct + '%'); setW(f, poupancaBarPct + '%');
-    setColor(v, poupancaBarPct > 15 ? 'var(--eur-c)' : 'var(--warn)');
   });
   [['hbar-poupanca-val','hbar-poupanca-fill'],['hbar-poupanca-val-2','hbar-poupanca-fill-2']].forEach(([v,f]) => {
     setTxt(v, patrimBRL2>0?'R$ '+Math.round(patrimBRL2/1000)+'k':'—'); setW(f, patrimPct + '%');
