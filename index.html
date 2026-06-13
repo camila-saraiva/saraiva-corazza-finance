@@ -145,7 +145,7 @@ async function resetData() {
   const defaultMetas = [{nome:'🏦 Reserva de emergência',moeda:'EUR',obj:18000,atual:0,aporte:0,prazo:'dez/2027'}];
   const SC_EMPTY = {
     sc_despesas:[], sc_entradas:[], sc_hist:[], sc_investimentos:{},
-    sc_inv_livre:[], sc_fixas:[], sc_contas:[], sc_financiamentos:[], sc_alerts_dismissed:[]
+    sc_inv_livre:[], sc_fixas:[], sc_contas:[], sc_financiamentos:[], sc_alerts_dismissed:[], sc_cf_comments:[]
   };
   _setSyncBadge('sync', '🔄 zerando...');
   // 1. Aguardar upserts no Supabase
@@ -482,6 +482,9 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 /* ALERT CARDS */
 .alert-card { border-radius: var(--radius); padding: 11px 12px; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start; }
+.comment-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
+.comment-header { display: flex; align-items: center; margin-bottom: 6px; gap: 6px; }
+.comment-text { font-size: 13px; color: var(--text); line-height: 1.55; white-space: pre-wrap; }
 .alert-card.warn { background: var(--warn-bg); border: 1px solid #FAC775; }
 .alert-card.danger { background: var(--danger-bg); border: 1px solid #F7C1C1; }
 .alert-card.success { background: var(--success-bg); border: 1px solid #97C459; }
@@ -1529,6 +1532,23 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
   </div>
 
+  <div class="section-title">Anotações do casal
+    <button class="btn-secondary" onclick="toggleForm('cf-comment-form')">+ Adicionar</button>
+  </div>
+  <div class="form-card" id="cf-comment-form" style="display:none;">
+    <div class="flabel mb8">Quem está anotando?</div>
+    <div class="pill-row" style="margin-bottom:12px;">
+      <div class="pill p-cam active" id="comment-pill-cam" onclick="setCommentAutor('cam')">👩‍💼 Camila</div>
+      <div class="pill" id="comment-pill-ayr" onclick="setCommentAutor('ayr')">👨‍💼 Ayrton</div>
+    </div>
+    <input type="hidden" id="comment-autor" value="cam">
+    <textarea class="finput" id="cf-comment-text" rows="3" placeholder="Escreva uma anotação..." style="resize:vertical;font-size:14px;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn-primary" style="flex:1;" onclick="saveCfComment()">Salvar anotação</button>
+      <button class="btn-cancel" onclick="toggleForm('cf-comment-form')">Cancelar</button>
+    </div>
+  </div>
+  <div id="cf-comments-list"></div>
 
 </div>
 
@@ -3349,6 +3369,67 @@ function initResumoCharts() {
 }
 function initCfCharts() {
   updateCharts(); // usa dados reais (fixas, entradas, despesas) em vez do CF_DATA estático
+  renderCfComments();
+}
+
+// ============================================================
+// COMENTÁRIOS DO CASHFLOW
+// ============================================================
+function setCommentAutor(a) {
+  document.getElementById('comment-autor').value = a;
+  document.getElementById('comment-pill-cam').classList.toggle('active', a==='cam');
+  document.getElementById('comment-pill-cam').classList.toggle('p-cam', a==='cam');
+  document.getElementById('comment-pill-ayr').classList.toggle('active', a==='ayr');
+  document.getElementById('comment-pill-ayr').classList.toggle('p-ayr', a==='ayr');
+}
+function saveCfComment() {
+  const text = (document.getElementById('cf-comment-text')?.value||'').trim();
+  if (!text) { alert('Escreva uma anotação antes de salvar.'); return; }
+  const autor = document.getElementById('comment-autor')?.value || 'cam';
+  const comments = DB.get('sc_cf_comments', []);
+  comments.push({ id: Date.now(), autor, texto: text, ts: new Date().toISOString() });
+  DB.set('sc_cf_comments', comments);
+  document.getElementById('cf-comment-text').value = '';
+  document.getElementById('cf-comment-form').style.display = 'none';
+  renderCfComments();
+}
+function editCfComment(id) {
+  const comments = DB.get('sc_cf_comments', []);
+  const c = comments.find(x => x.id === id);
+  if (!c) return;
+  const novo = prompt('Editar anotação:', c.texto);
+  if (novo === null) return;
+  c.texto = novo.trim() || c.texto;
+  DB.set('sc_cf_comments', comments);
+  renderCfComments();
+}
+function deleteCfComment(id) {
+  if (!confirm('Excluir esta anotação?')) return;
+  DB.set('sc_cf_comments', DB.get('sc_cf_comments',[]).filter(c=>c.id!==id));
+  renderCfComments();
+}
+function renderCfComments() {
+  const list = document.getElementById('cf-comments-list');
+  if (!list) return;
+  const comments = DB.get('sc_cf_comments',[]).slice().reverse();
+  if (!comments.length) { list.innerHTML = '<div style="color:#aaa;font-size:13px;padding:8px 0;">Nenhuma anotação ainda.</div>'; return; }
+  const autorLabel = a => a==='cam'?'👩‍💼 Camila':'👨‍💼 Ayrton';
+  const autorColor = a => a==='cam'?'var(--camila)':'var(--ayrton)';
+  list.innerHTML = comments.map(c => {
+    const dt = new Date(c.ts);
+    const dtStr = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="comment-card">
+      <div class="comment-header">
+        <span style="font-weight:700;color:${autorColor(c.autor)};">${autorLabel(c.autor)}</span>
+        <span style="font-size:11px;color:#aaa;">${dtStr}</span>
+        <span style="margin-left:auto;display:flex;gap:4px;">
+          <button onclick="editCfComment(${c.id})" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:.6;" title="Editar">✏️</button>
+          <button onclick="deleteCfComment(${c.id})" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:.6;" title="Excluir">🗑</button>
+        </span>
+      </div>
+      <div class="comment-text">${c.texto.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+    </div>`;
+  }).join('');
 }
 function initInvestCharts() {
   mkChart('evolChart', {
@@ -3879,25 +3960,17 @@ function renderContasSaldos() {
   const sym  = m => m === 'eur' ? '€' : 'R$';
   const fmtV = (v, m) => (m==='eur'?'€ ':'R$ ') + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
   wrap.innerHTML = contas.map((c, i) => {
-    const saldoCalc = (() => {
-      if (!c.dataRef) return c.saldo || 0;
-      const txEntr = (typeof entradas!=='undefined'?entradas:[]).filter(e=>e.moeda===c.moeda&&e.data>=c.dataRef).reduce((s,e)=>s+e.valor,0);
-      const txDesp = (typeof despesas!=='undefined'?despesas:[]).filter(d=>d.moeda===c.moeda&&d.data>=c.dataRef).reduce((s,d)=>s+d.valor,0);
-      return (c.saldo||0) + txEntr - txDesp;
-    })();
-    const diffStr = c.dataRef ? (() => {
-      const diff = saldoCalc - (c.saldo||0);
-      if (Math.abs(diff) < 0.01) return '';
-      return ' <span style="font-size:10px;color:'+(diff>=0?'var(--success)':'var(--danger)')+';">'+(diff>=0?'+':'')+sym(c.moeda)+' '+Math.abs(diff).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span>';
-    })() : '';
+    // Mostra apenas o saldo base cadastrado (sem projeção de transações por conta)
+    const saldoBase = c.saldo || 0;
+    const refLabel = c.dataRef ? ' · saldo em '+c.dataRef : '';
     return `<div class="list-row">
       <div class="list-dot" style="background:${c.cor||'#888'};"></div>
       <div class="list-info">
-        <div class="list-desc">${c.nome}${diffStr}</div>
-        <div class="list-sub">${flag(c.moeda)} ${titLabel(c.titular||'ambos')}${c.dataRef?' · ref: '+c.dataRef:''}</div>
+        <div class="list-desc">${c.nome}</div>
+        <div class="list-sub">${flag(c.moeda)} ${titLabel(c.titular||'ambos')}${refLabel}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <div class="list-val ${c.moeda==='eur'?'text-eur':'text-brl'}">${fmtV(saldoCalc, c.moeda)}</div>
+        <div class="list-val ${c.moeda==='eur'?'text-eur':'text-brl'}">${fmtV(saldoBase, c.moeda)}</div>
         <button onclick="openContaModal(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">✏️</button>
         <button onclick="deleteConta(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.6;">🗑</button>
       </div>
@@ -3994,8 +4067,9 @@ function updateDashCards() {
   const mes = new Date().toISOString().slice(0,7);
   const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
-  const caixaIT = getContasSaldoCalc('eur');
-  const caixaBR = getContasSaldoCalc('brl');
+  const _contas = typeof getContasArr === 'function' ? getContasArr() : [];
+  const caixaIT = _contas.filter(c=>c.moeda==='eur').reduce((s,c)=>s+(c.saldo||0),0);
+  const caixaBR = _contas.filter(c=>c.moeda==='brl').reduce((s,c)=>s+(c.saldo||0),0);
   const inv = DB.get('sc_investimentos',{});
   const xp = inv.xp||0, imovelBR=inv.imovelBr||0, imovelIT=inv.imovelIt||0;
   const fx = fxRates.EURBRL||6.0;
@@ -4040,16 +4114,23 @@ function updateDashCards() {
   const totFixasBrl = fixas2.filter(f=>f.moeda==='brl').reduce((s,f)=>s+f.valor,0);
   set('d-fixas-mes', totFixasEur>0?'€ '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
   set('d-fixas-sub', totFixasBrl>0?fixas2.filter(f=>f.moeda==='eur').length+' EUR · '+fixas2.filter(f=>f.moeda==='brl').length+' BRL':fixas2.length+' despesa(s) recorrente(s)');
-  // Saldo previsto = caixaIT + DRE mês
-  const saldoPrev = caixaIT + (entrMes - despMes);
+  // Saldo previsto = caixa final DRE do mês atual
+  const _curMoIdx = new Date().getMonth();
+  const saldoPrev = (DRE_ROWS && DRE_ROWS[12] && DRE_ROWS[12].vals[_curMoIdx] != null)
+    ? DRE_ROWS[12].vals[_curMoIdx] : null;
   const prevEl2 = document.getElementById('d-saldo-prev');
   if (prevEl2) {
-    prevEl2.textContent = saldoPrev >= 0
-      ? '€ '+saldoPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})
-      : '- € '+Math.abs(saldoPrev).toLocaleString('pt-BR',{minimumFractionDigits:2});
-    prevEl2.className = 'card-value '+(saldoPrev>=1500?'text-eur':saldoPrev>=0?'text-gold':'text-danger');
+    if (saldoPrev === null) {
+      prevEl2.textContent = '€ —';
+      prevEl2.className = 'card-value';
+    } else {
+      prevEl2.textContent = saldoPrev >= 0
+        ? '€ '+saldoPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})
+        : '- € '+Math.abs(saldoPrev).toLocaleString('pt-BR',{minimumFractionDigits:2});
+      prevEl2.className = 'card-value '+(saldoPrev>=1500?'text-eur':saldoPrev>=0?'text-gold':'text-danger');
+    }
   }
-  set('d-saldo-prev-sub', 'Caixa atual + DRE mês');
+  set('d-saldo-prev-sub', 'Caixa final do mês (DRE)');
 }
 
 function updateEntrCards() {
@@ -4082,8 +4163,9 @@ function updateEntrCards() {
 function updateResumoCards() {
   const mes = new Date().toISOString().slice(0,7);
   const fixas = DB.get('sc_fixas',[]);
-  const caixaIT = getContasSaldoCalc('eur');
-  const caixaBR = getContasSaldoCalc('brl');
+  const _contasR = typeof getContasArr === 'function' ? getContasArr() : [];
+  const caixaIT = _contasR.filter(c=>c.moeda==='eur').reduce((s,c)=>s+(c.saldo||0),0);
+  const caixaBR = _contasR.filter(c=>c.moeda==='brl').reduce((s,c)=>s+(c.saldo||0),0);
   const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
   const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
