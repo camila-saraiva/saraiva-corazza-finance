@@ -1143,6 +1143,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <option value="transporte">Transporte / Auto</option>
           <option value="viagem">Viagem</option>
           <option value="assinaturas">Assinaturas</option>
+          <option value="contas">Contas/Cartões</option>
           <option value="casa">Casa / Moradia</option>
           <option value="imposto">Imposto</option>
           <option value="outros">Outros</option>
@@ -2376,6 +2377,7 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
           <option value="transporte">Transporte</option>
           <option value="viagem">Viagem</option>
           <option value="assinaturas">Assinaturas</option>
+          <option value="contas">Contas/Cartões</option>
           <option value="casa">Casa</option>
           <option value="imposto">Imposto</option>
           <option value="outros">Outros</option>
@@ -4260,15 +4262,11 @@ function updateDashCards() {
   if (caixaEl) caixaEl.className = 'card-value '+(caixaIT>2000?'text-eur':caixaIT>0?'text-gold':'text-danger');
   set('d-patrim-brl', patrimBRL>0?'R$ '+Math.round(patrimBRL).toLocaleString('pt-BR'):'R$ —');
   set('d-patrim-eur', patrimBRL>0?'≈ € '+Math.round(patrimBRL/fx).toLocaleString('pt-BR'):'≈ € —');
-  // Acumulado 2026
-  const yr2 = new Date().getFullYear();
-  const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
-  let acumEntr = 0, acumDesp = 0;
-  mKeys2.slice(0, curMo+1).forEach(m => {
-    acumEntr += entradas.filter(e=>e.data.startsWith(m)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
-    acumDesp += despesas.filter(d=>d.data.startsWith(m)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
-  });
-  const acumulado = acumEntr - acumDesp;
+  // Acumulado 2026 — usa DRE cascade (inclui fixas projetadas)
+  const dreAcum = computeDRECascade('eur');
+  const acumEntr = dreAcum.entr.slice(0, curMo+1).reduce((s,v)=>s+v, 0);
+  const acumSaida = dreAcum.saida.slice(0, curMo+1).reduce((s,v)=>s+v, 0);
+  const acumulado = acumEntr - acumSaida;
   const rendEl = document.getElementById('d-rendimento');
   if (rendEl) { rendEl.textContent = acumEntr>0||acumDesp>0 ? (acumulado>=0?'+ ':'')+'€ '+Math.abs(acumulado).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '€ —'; rendEl.className = 'card-value '+(acumulado>=0?'text-eur':'text-danger'); }
   // Fixas mês
@@ -4558,15 +4556,13 @@ function showDrillDown(tipo) {
     const curMes2 = now2.getMonth();
     const MESES2 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     title.textContent = '📈 Acumulado ' + yr2;
+    const dreDD = computeDRECascade('eur');
     let totalAcum = 0;
     let dreRows = '';
     for (let i = 0; i <= curMes2; i++) {
-      const mk = `${yr2}-${String(i+1).padStart(2,'0')}`;
-      const e2 = entradas.filter(x=>x.data.startsWith(mk)&&x.moeda==='eur').reduce((s,x)=>s+x.valor,0);
-      const d2 = despesas.filter(x=>x.data.startsWith(mk)&&x.moeda==='eur').reduce((s,x)=>s+x.valor,0);
-      const res2 = e2 - d2;
+      const res2 = dreDD.entr[i] - dreDD.saida[i];
       totalAcum += res2;
-      dreRows += drillRow(MESES2[i]+'/'+yr2, (res2>=0?'+ ':'')+'€ '+res2.toLocaleString('pt-BR',{minimumFractionDigits:2}), res2>=0?'var(--eur-c)':'var(--danger)');
+      dreRows += drillRow(MESES2[i]+'/'+yr2, (res2>=0?'+ ':'- ')+'€ '+Math.abs(res2).toLocaleString('pt-BR',{minimumFractionDigits:2}), res2>=0?'var(--eur-c)':'var(--danger)');
     }
     dreRows += drillRow('Total acumulado', (totalAcum>=0?'+ ':'')+'€ '+totalAcum.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'var(--gold)', true);
     body.innerHTML = '<div style="padding:12px 0;">'+dreRows+'</div>';
@@ -4921,9 +4917,9 @@ function updateCharts() {
   // Determine active moeda from country flag
   const cfMoeda = (typeof currentCountry !== 'undefined' && currentCountry === 'br') ? 'brl' : 'eur';
   // Category data from real despesas
-  const CAT_ORDER = ['alimentacao','mercado','assinaturas','auto','compras','saude','transporte','viagem','imposto','outros'];
-  const CAT_LABELS_LIST = ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Imposto','Outros'];
-  const CAT_COLORS_LIST = ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#E05C5C','#888'];
+  const CAT_ORDER = ['alimentacao','mercado','assinaturas','auto','compras','saude','transporte','viagem','contas','imposto','outros'];
+  const CAT_LABELS_LIST = ['Alimentação','Mercado','Assinaturas','Auto','Compras','Saúde','Transporte','Viagem','Contas/Cartões','Imposto','Outros'];
+  const CAT_COLORS_LIST = ['#1D9E75','#378ADD','#7F77DD','#EF9F27','#C9A227','#E24B4A','#5DCAA5','#FAC775','#3B82F6','#E05C5C','#888'];
   const catSums = {};
   CAT_ORDER.forEach(c => { catSums[c] = 0; });
   despesas.filter(d => d.moeda === cfMoeda).forEach(d => {
@@ -4952,8 +4948,11 @@ function updateCharts() {
   const despByMo = mKeys.map(m => despesas.filter(d => d.data && d.data.startsWith(m) && d.moeda === cfMoeda && d.pagamento !== 'credito').reduce((s, d) => s + d.valor, 0));
   const dreByMo = entrByMo.map((e, i) => e - despByMo[i]);
 
-  cfBarLine('miniCfChart', entrByMo.slice(0,6), despByMo.slice(0,6), dreByMo.slice(0,6), MESES_SHORT.slice(0,6), Math.min(curIdx, 5));
-  cfBarLine('cfMainChart', entrByMo, despByMo, dreByMo, MESES_SHORT, curIdx);
+  const dreChart = computeDRECascade(cfMoeda);
+  const saidaChart = dreChart.saida;
+  const caixaFinalChart = dreChart.caixaFinal;
+  cfBarLine('miniCfChart', entrByMo.slice(0,6), saidaChart.slice(0,6), caixaFinalChart.slice(0,6), MESES_SHORT.slice(0,6), Math.min(curIdx, 5));
+  cfBarLine('cfMainChart', entrByMo, saidaChart, caixaFinalChart, MESES_SHORT, curIdx);
   // resumoCfChart removido (aba Resumo excluída)
 
   // DRE table
@@ -5141,9 +5140,10 @@ function updateSaudeFinanceira() {
   const mes = new Date().toISOString().slice(0, 7);
   const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0);
   const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0);
-  const caixaIT = getContasSaldoCalc('eur');
+  const dreSaude = computeDRECascade('eur');
+  const caixaIT = dreSaude.saldoIni[new Date().getMonth()];
   const totFixasEur = fixas.filter(f => f.moeda === 'eur').reduce((s, f) => s + f.valor, 0);
-  const hasData = entrMes > 0 || despMes > 0 || caixaIT > 0;
+  const hasData = entrMes > 0 || despMes > 0 || getContasArr().length > 0 || fixas.length > 0;
 
   if (!hasData) {
     const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
@@ -5155,10 +5155,20 @@ function updateSaudeFinanceira() {
     return;
   }
 
-  const metaEmerg = 18000;
-  const reservaPct = metaEmerg > 0 ? Math.min(Math.round(caixaIT / metaEmerg * 100), 100) : 0;
-  const compromPct = entrMes > 0 && totFixasEur > 0 ? Math.min(Math.round(totFixasEur / entrMes * 100), 100) : 0;
-  const poupancaPct = entrMes > 0 ? Math.max(0, Math.min(Math.round((entrMes - despMes) / entrMes * 100), 100)) : 0;
+  // Usa DRE cascade para valores corretos
+  const dreHealth = computeDRECascade('eur');
+  const curMoH = new Date().getMonth();
+  const caixaAtualH = dreHealth.saldoIni[curMoH]; // saldo inicio do mes atual
+  // Meta emergência: lê de sc_metas (fallback 5000)
+  const metaEmerg = (() => { const m = metas.find(x => /reserva|emerg/i.test(x.nome||'')); return m ? (m.obj||5000) : 5000; })();
+  const reservaPct = metaEmerg > 0 ? Math.max(0, Math.min(Math.round(caixaAtualH / metaEmerg * 100), 100)) : 0;
+  // Renda média: entradas realizadas / meses realizados (evita div por 0 em mês sem entrada)
+  const realEntrH = dreHealth.entr.slice(0, curMoH+1).reduce((s,v)=>s+v, 0);
+  const realSaidaH = dreHealth.saida.slice(0, curMoH+1).reduce((s,v)=>s+v, 0);
+  const mesesComEntr = dreHealth.entr.slice(0, curMoH+1).filter(v=>v>0).length;
+  const rendaRefH = mesesComEntr > 0 ? realEntrH / mesesComEntr : 0;
+  const compromPct = rendaRefH > 0 && totFixasEur > 0 ? Math.min(Math.round(totFixasEur / rendaRefH * 100), 100) : 0;
+  const poupancaPct = realEntrH > 0 ? Math.max(0, Math.min(Math.round((realEntrH - realSaidaH) / realEntrH * 100), 100)) : 0;
   // Patrimônio total para barra
   const fx2 = fxRates.EURBRL || 6.0;
   const inv2 = DB.get('sc_investimentos',{});
@@ -5166,7 +5176,7 @@ function updateSaudeFinanceira() {
   const patrimBRL2 = (inv2.imovelBr||0) + (inv2.xp||0)
     + invLivre2.filter(i=>i.moeda==='brl').reduce((s,i)=>s+i.valor,0)
     + invLivre2.filter(i=>i.moeda==='eur').reduce((s,i)=>s+i.valor,0)*fx2
-    + ((inv2.imovelIt||0) + caixaIT)*fx2;
+    + ((inv2.imovelIt||0) + dreSaude.saldoIni[new Date().getMonth()])*fx2;
   const META_PATRIM = 2000000; // meta R$ 2M
   const patrimPct = Math.min(Math.round(patrimBRL2/META_PATRIM*100), 100);
 
@@ -5251,9 +5261,11 @@ function renderAlerts() {
   const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda === 'eur').reduce((s, e) => s + e.valor, 0);
   const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda === 'eur').reduce((s, d) => s + d.valor, 0);
   const totFixasEur = fixas.filter(f => f.moeda === 'eur').reduce((s, f) => s + f.valor, 0);
-  const caixaIT = getContasSaldoCalc('eur');
+  const dreAlerts = computeDRECascade('eur');
+  const curMoAl = new Date().getMonth();
+  const caixaIT = dreAlerts.saldoIni[curMoAl]; // saldo início do mês (DRE cascade)
   const today = new Date().getDate();
-  const hasAnyData = entrMes > 0 || despMes > 0 || caixaIT > 0 || fixas.length > 0 || despesas.length > 0 || entradas.length > 0;
+  const hasAnyData = entrMes > 0 || despMes > 0 || fixas.length > 0 || despesas.length > 0 || entradas.length > 0 || getContasArr().length > 0;
 
   if (!hasAnyData) {
     wrap.innerHTML = '<div class="alert-card info"><div class="alert-icon">💡</div><div class="alert-body"><div class="alert-title">Comece adicionando seus dados</div><div class="alert-text">Cadastre entradas, despesas e despesas fixas para receber alertas personalizados.</div></div></div>';
@@ -5262,33 +5274,48 @@ function renderAlerts() {
 
   const alerts = [];
 
-  // Upcoming fixas (next 7 days)
+  // Caixa negativo — alerta crítico
+  if (caixaIT < 0) {
+    alerts.push({type:'danger', icon:'🔴', title:'Caixa negativo', text:`Saldo início do mês: - € ${Math.abs(caixaIT).toLocaleString('pt-BR',{minimumFractionDigits:2})}. As despesas fixas comprometem o caixa.`});
+  }
+
+  // Upcoming fixas (próximos 15 dias ou ainda no mês)
   fixas.filter(f => f.moeda === 'eur').forEach(f => {
-    const dias = f.dia - today;
-    if (dias >= 0 && dias <= 7) {
-      const quando = dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : `em ${dias} dias`;
-      alerts.push({type:'warn', icon:'⚠️', title:`${f.nome} vence ${quando}`, text:`Valor: € ${f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}. Saldo atual: € ${caixaIT.toLocaleString('pt-BR',{minimumFractionDigits:2})}.`});
+    const diasRestantes = f.dia - today;
+    if (diasRestantes >= 0 && diasRestantes <= 15) {
+      const quando = diasRestantes === 0 ? 'hoje' : diasRestantes === 1 ? 'amanhã' : `em ${diasRestantes} dias (dia ${f.dia})`;
+      const tipo = caixaIT >= f.valor ? 'warn' : 'danger';
+      const caixaFmt = caixaIT < 0 ? `- € ${Math.abs(caixaIT).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : `€ ${caixaIT.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+      alerts.push({type:tipo, icon:tipo==='danger'?'🔴':'⚠️', title:`${f.nome} vence ${quando}`, text:`Valor: € ${f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})} · Saldo início mês: ${caixaFmt}`});
     }
   });
 
-  // Low reserve
-  if (caixaIT > 0 && totFixasEur > 0) {
+  // Low reserve (usando metaEmerg das metas)
+  const metaEmergAl = (() => { const m = metas.find(x => /reserva|emerg/i.test(x.nome||'')); return m ? (m.obj||5000) : 5000; })();
+  if (totFixasEur > 0) {
     const coverageMonths = caixaIT / totFixasEur;
-    if (coverageMonths < 2) alerts.push({type:'danger', icon:'🔴', title:'Reserva muito baixa', text:`Cobertura: ${coverageMonths.toFixed(1)} meses. Recomendado mínimo 3 meses.`});
-    else if (coverageMonths < 4) alerts.push({type:'warn', icon:'⚠️', title:'Reserva abaixo do ideal', text:`Cobertura: ${coverageMonths.toFixed(1)} meses. Recomendado 6 meses (€ 18.000).`});
+    if (caixaIT <= 0) {
+      // já coberto pelo alerta de caixa negativo
+    } else if (coverageMonths < 2) {
+      alerts.push({type:'danger', icon:'🔴', title:'Reserva muito baixa', text:`Cobertura: ${coverageMonths.toFixed(1)} meses de despesas fixas. Recomendado mínimo 3 meses.`});
+    } else if (coverageMonths < 4) {
+      const pct = Math.round(caixaIT / metaEmergAl * 100);
+      alerts.push({type:'warn', icon:'⚠️', title:'Reserva abaixo do ideal', text:`Cobertura: ${coverageMonths.toFixed(1)} meses (${pct}% da meta de € ${metaEmergAl.toLocaleString('pt-BR')}). Reforce gradualmente.`});
+    }
   }
 
-  // High income commitment
-  if (entrMes > 0 && totFixasEur > 0) {
-    const pct = Math.round(totFixasEur / entrMes * 100);
-    if (pct > 70) alerts.push({type:'danger', icon:'🔴', title:'Comprometimento alto', text:`${pct}% da renda comprometida com despesas fixas. Revise o planejamento.`});
-    else if (pct > 50) alerts.push({type:'warn', icon:'⚠️', title:'Comprometimento elevado', text:`${pct}% da renda comprometida com despesas fixas.`});
+  // Comprometimento: usa renda média anual para evitar falso positivo em meses sem entrada
+  const rendaRefAl = (() => { const r = dreAlerts.entr.slice(0, curMoAl+1); const s=r.reduce((a,v)=>a+v,0); const n=r.filter(v=>v>0).length; return n>0?s/n:0; })();
+  if (rendaRefAl > 0 && totFixasEur > 0) {
+    const pct = Math.round(totFixasEur / rendaRefAl * 100);
+    if (pct > 70) alerts.push({type:'danger', icon:'🔴', title:'Comprometimento alto', text:`${pct}% da renda média comprometida com despesas fixas (€ ${totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês).`});
+    else if (pct > 50) alerts.push({type:'warn', icon:'⚠️', title:'Comprometimento elevado', text:`${pct}% da renda média comprometida com despesas fixas.`});
   }
 
-  // Positive savings
-  if (entrMes > 0 && despMes >= 0) {
-    const poupanca = entrMes - despMes;
-    if (poupanca > 0 && despMes > 0) alerts.push({type:'success', icon:'✅', title:'Saldo positivo este mês', text:`€ ${poupanca.toLocaleString('pt-BR',{minimumFractionDigits:2})} disponível. Considere investir a sobra.`});
+  // Saldo positivo: DRE caixa final previsto
+  const caixaFinalPrev = dreAlerts.caixaFinal[curMoAl];
+  if (caixaFinalPrev > 0 && caixaIT > 0) {
+    alerts.push({type:'success', icon:'✅', title:'Caixa previsto positivo', text:`Caixa final jun/2026: € ${caixaFinalPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})}. Continue monitorando.`});
   }
 
   if (!alerts.length) {
@@ -5608,7 +5635,8 @@ function renderEstratInsights() {
   const mes     = new Date().toISOString().slice(0, 7);
   const entrMes = entradas.filter(e => e.data && e.data.startsWith(mes) && e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d => d.data && d.data.startsWith(mes) && d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
-  const caixaIT = getContasSaldoCalc('eur');
+  const dreEI = computeDRECascade('eur');
+  const caixaIT = dreEI.saldoIni[new Date().getMonth()]; // saldo início mês atual (DRE cascade)
   const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
   const totParcelasEur = financ.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.parcela,0);
   const totalComprometido = totFixasEur + totParcelasEur;
@@ -5635,12 +5663,12 @@ function renderEstratInsights() {
   // Emergency reserve
   if (caixaIT > 0 && totFixasEur > 0) {
     const months = (caixaIT / (totFixasEur + totParcelasEur)).toFixed(1);
-    const metaEur = 18000;
-    const pct = Math.round(caixaIT / metaEur * 100);
+    const metaEurI = (() => { const m = metas.find(x => /reserva|emerg/i.test(x.nome||'')); return m ? (m.obj||5000) : 5000; })();
+    const pct = metaEurI > 0 ? Math.round(caixaIT / metaEurI * 100) : 0;
     if (parseFloat(months) < 2)
-      insights.push({type:'danger', icon:'💰', title:'Reserva de emergência insuficiente', text:`Cobertura: ${months} meses. Meta: 6 meses. Considere separar €300/mês em reserva.`});
+      insights.push({type:'danger', icon:'💰', title:'Reserva de emergência insuficiente', text:`Cobertura: ${months} meses de despesas fixas. Considere separar valores mensais em reserva.`});
     else if (parseFloat(months) < 4)
-      insights.push({type:'warn', icon:'⚠️', title:'Reserva de emergência abaixo do ideal', text:`Cobertura: ${months} meses (${pct}% da meta de €18.000). Reforce gradualmente.`});
+      insights.push({type:'warn', icon:'⚠️', title:'Reserva de emergência abaixo do ideal', text:`Cobertura: ${months} meses (${pct}% da meta de € ${metaEurI.toLocaleString('pt-BR')}). Reforce gradualmente.`});
   }
 
   // High rate debt priority
