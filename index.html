@@ -177,7 +177,7 @@ async function resetData() {
   if(typeof updateEntrCards==='function') updateEntrCards();
   if(typeof updateResumoCards==='function') updateResumoCards();
   if(typeof updateCharts==='function') updateCharts();
-  if(typeof renderAlerts==='function') renderAlerts();
+  if(typeof renderAlerts==='function') renderAlerts(); if(typeof renderCfAlerts==='function') renderCfAlerts(); renderCfAlerts();
   if(typeof updateSaudeFinanceira==='function') updateSaudeFinanceira();
   if(typeof renderFinanciamentos==='function') renderFinanciamentos();
   if(typeof renderEstratInsights==='function') renderEstratInsights();
@@ -1306,10 +1306,15 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
 
 <!-- ==================== ENTRADAS ==================== -->
 <div class="tab-content" id="tab-entradas">
-  <div class="section-title">Contas &amp; saldos
-    <button class="btn-secondary" onclick="openContaModal(-1)">+ Adicionar</button>
+  <div class="section-title">Contas cadastradas
+    <button class="btn-secondary" onclick="openContaModal(-1)">+ Nova conta</button>
   </div>
   <div class="card-white mb12" id="contas-list"></div>
+
+  <div class="section-title">Saldos por conta
+    <span style="font-size:10px;color:#888;font-weight:400;">Estimativa via DRE</span>
+  </div>
+  <div class="card-white mb12" id="saldos-list"></div>
 
   <div class="cards-row">
     <div class="card-dark">
@@ -2666,7 +2671,7 @@ function showTab(tabId, navEl, bnEl) {
   const inits = {
     dashboard: initDashCharts,
     resumo: initResumoCharts,
-    cashflow: () => { initCfCharts(); updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7)); },
+    cashflow: () => { initCfCharts(); renderCfAlerts(); updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7)); },
     investimentos: () => { initInvestCharts(); renderInvLivre(); renderInvestimentosValues(); },
     estrategia: initEstratCharts,
     despesas: () => { renderDespTable(); renderCatSummary(); },
@@ -2934,7 +2939,7 @@ function saveEntrada() {
   updateDashCards();
   updateResumoCards();
   updateCharts();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
   updateSaudeFinanceira();
   renderFinanciamentos();
   renderEstratInsights();
@@ -3829,7 +3834,7 @@ async function handlePDFImport(file, type, statusEl, input) {
     DB.set('sc_hist', hist.slice(0, 200));
     renderDespList(); renderDespTable(); renderCatSummary(); renderHistorico();
     updateDashCards(); updateEntrCards(); updateResumoCards();
-    updateCharts(); renderAlerts(); updateSaudeFinanceira(); renderEstratInsights();
+    updateCharts(); renderAlerts(); renderCfAlerts(); updateSaudeFinanceira(); renderEstratInsights();
     statusEl.textContent = '✅ ' + imported + ' despesas importadas do extrato MPS PDF. (' + skipped + ' linhas ignoradas)';
     if (input) input.value = '';
   } catch(err) {
@@ -3934,7 +3939,7 @@ function saveContaItem() {
   updateDashCards();
   updateResumoCards();
   updateSaudeFinanceira();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
   updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7));
 }
 
@@ -3948,7 +3953,7 @@ function deleteConta(idx) {
   updateDashCards();
   updateResumoCards();
   updateSaudeFinanceira();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
 }
 
 function openSaldoSnap(idx) {
@@ -3980,7 +3985,7 @@ function saveSaldoSnap() {
   updateDashCards();
   updateResumoCards();
   updateSaudeFinanceira();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
 }
 
 function deleteSaldoSnap(contaIdx, data) {
@@ -4001,52 +4006,96 @@ function deleteSaldoSnap(contaIdx, data) {
 function renderContasSaldos() {
   const contas = getContasArr();
   const wrap = document.getElementById('contas-list');
-  if (!wrap) return;
-  if (!contas.length) {
-    wrap.innerHTML = '<div style="padding:16px;text-align:center;color:#aaa;font-size:13px;">Nenhuma conta cadastrada. Toque em <b>+ Adicionar</b>.</div>';
-    return;
-  }
+  const saldosWrap = document.getElementById('saldos-list');
   const titLabel = t => t==='camila' ? '👩‍💼 Camila' : t==='ayrton' ? '👨‍💼 Ayrton' : '👥 Ambos';
   const flag = m => m === 'eur' ? '🇮🇹' : '🇧🇷';
   const fmtV = (v, m) => (m==='eur'?'€ ':'R$ ') + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
   const fmtDate = d => { if (!d || d.length < 10) return d||''; const [y,mm,dd] = d.split('-'); return `${dd}/${mm}/${y}`; };
-  wrap.innerHTML = contas.map((c, i) => {
-    const hist = (c.saldo_hist || []).slice().sort((a,b) => b.data.localeCompare(a.data));
-    const saldoBase = c.saldo || 0;
-    const refLabel = c.dataRef ? ` · atualizado em ${fmtDate(c.dataRef)}` : '';
-    const histHtml = hist.length > 1 ? `
-      <div id="hist-wrap-${i}" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
-        <div style="font-size:11px;color:#888;margin-bottom:6px;">Histórico de saldos</div>
-        ${hist.map(h => `
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+
+  // — Contas cadastradas (registration only, no balance)
+  if (wrap) {
+    if (!contas.length) {
+      wrap.innerHTML = '<div style="padding:16px;text-align:center;color:#aaa;font-size:13px;">Nenhuma conta cadastrada. Toque em <b>+ Adicionar</b>.</div>';
+    } else {
+      wrap.innerHTML = contas.map((c, i) => `
+        <div class="list-row">
+          <div class="list-dot" style="background:${c.cor||'#888'};flex-shrink:0;"></div>
+          <div class="list-info" style="flex:1;min-width:0;">
+            <div class="list-desc">${c.nome}</div>
+            <div class="list-sub">${flag(c.moeda)} ${titLabel(c.titular||'ambos')} · ${c.moeda.toUpperCase()}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:2px;">
+            <button onclick="openContaModal(${i})" title="Editar" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;opacity:.65;">✏️</button>
+            <button onclick="deleteConta(${i})" title="Excluir" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;opacity:.65;">🗑</button>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // — Saldos por conta (history + DRE-estimated current)
+  if (saldosWrap) {
+    if (!contas.length) {
+      saldosWrap.innerHTML = '<div style="padding:16px;text-align:center;color:#aaa;font-size:13px;">Nenhuma conta cadastrada.</div>';
+    } else {
+      const curMoEst = new Date().getMonth();
+      const dreEUR = computeDRECascade('eur');
+      const dreBRL = computeDRECascade('brl');
+      const eurContas = contas.filter(c => c.moeda === 'eur');
+      const brlContas = contas.filter(c => c.moeda === 'brl');
+      const baseSumEUR = eurContas.reduce((s,c) => s+(c.saldo||0), 0);
+      const baseSumBRL = brlContas.reduce((s,c) => s+(c.saldo||0), 0);
+      const dreEURtotal = dreEUR.caixaFinal[curMoEst];
+      const dreBRLtotal = dreBRL.caixaFinal[curMoEst];
+
+      saldosWrap.innerHTML = contas.map((c, i) => {
+        const hist = (c.saldo_hist || []).slice().sort((a,b) => b.data.localeCompare(a.data));
+        const isEUR = c.moeda === 'eur';
+        const baseSum = isEUR ? baseSumEUR : baseSumBRL;
+        const dreTotal = isEUR ? dreEURtotal : dreBRLtotal;
+        const pct = baseSum > 0 ? (c.saldo||0)/baseSum : 0;
+        const estAtual = dreTotal * pct;
+        const refLabel = c.dataRef ? `ref. ${fmtDate(c.dataRef)}` : 'sem referência';
+
+        const histRows = hist.map(h => `
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
             <span style="color:#aaa;">${fmtDate(h.data)}</span>
-            <span style="${h.data===c.dataRef?'font-weight:700;color:var(--eur-c)':''}">${fmtV(h.valor, c.moeda)}</span>
+            <span style="${h.data===c.dataRef?'font-weight:700;color:var(--'+(isEUR?'eur':'brl')+'-c)':''}">${fmtV(h.valor, c.moeda)}</span>
             ${h.data !== c.dataRef
-              ? `<button onclick="deleteSaldoSnap(${i},'${h.data}')" title="Excluir" style="background:none;border:none;cursor:pointer;font-size:10px;opacity:.45;padding:0 3px;">🗑</button>`
-              : `<span style="font-size:9px;color:#888;padding:0 3px;">atual</span>`}
-          </div>`).join('')}
-      </div>` : '';
-    const histBtn = hist.length > 1
-      ? `<button onclick="(function(){var el=document.getElementById('hist-wrap-${i}');el.style.display=el.style.display==='none'?'block':'none';})()" title="Histórico" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 3px;opacity:.55;">📋</button>`
-      : '';
-    return `<div class="list-row" style="flex-direction:column;align-items:stretch;gap:0;">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <div class="list-dot" style="background:${c.cor||'#888'};flex-shrink:0;margin-top:0;"></div>
-        <div class="list-info" style="flex:1;min-width:0;">
-          <div class="list-desc">${c.nome}</div>
-          <div class="list-sub">${flag(c.moeda)} ${titLabel(c.titular||'ambos')}${refLabel}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:2px;">
-          <div class="list-val ${c.moeda==='eur'?'text-eur':'text-brl'}">${fmtV(saldoBase, c.moeda)}</div>
-          <button onclick="openSaldoSnap(${i})" title="Atualizar saldo" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 3px;opacity:.6;">📅</button>
-          ${histBtn}
-          <button onclick="openContaModal(${i})" title="Editar conta" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 3px;opacity:.6;">✏️</button>
-          <button onclick="deleteConta(${i})" title="Excluir" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 3px;opacity:.6;">🗑</button>
-        </div>
-      </div>
-      ${histHtml}
-    </div>`;
-  }).join('');
+              ? `<button onclick="deleteSaldoSnap(${i},'${h.data}')" title="Excluir" style="background:none;border:none;cursor:pointer;font-size:10px;opacity:.4;padding:0 4px;">🗑</button>`
+              : `<span style="font-size:9px;color:#888;padding:0 4px;">base</span>`}
+          </div>`).join('');
+
+        const histSection = hist.length ? `
+          <div id="shist-${i}" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+            <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;">Histórico de saldos</div>
+            ${histRows}
+          </div>` : '';
+
+        const histBtn = hist.length
+          ? `<button onclick="(function(){var el=document.getElementById('shist-${i}');el.style.display=el.style.display==='none'?'block':'none';})()" title="Ver histórico" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.55;">📋</button>`
+          : '';
+
+        return `<div class="list-row" style="flex-direction:column;align-items:stretch;gap:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="list-dot" style="background:${c.cor||'#888'};flex-shrink:0;margin-top:0;"></div>
+            <div class="list-info" style="flex:1;min-width:0;">
+              <div class="list-desc">${c.nome}</div>
+              <div class="list-sub">${refLabel}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:2px;">
+              <div style="text-align:right;">
+                <div class="list-val ${isEUR?'text-eur':'text-brl'}" style="font-size:13px;">${fmtV(estAtual, c.moeda)}</div>
+                <div style="font-size:10px;color:#888;">est. DRE ${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][curMoEst]}</div>
+              </div>
+              <button onclick="openSaldoSnap(${i})" title="Atualizar saldo" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;opacity:.65;">📅</button>
+              ${histBtn}
+            </div>
+          </div>
+          ${histSection}
+        </div>`;
+      }).join('');
+    }
+  }
 }
 
 // ============================================================
@@ -4085,7 +4134,7 @@ function saveFixa() {
   renderFixas();
   updateResumoCards();
   updateCharts();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
   updateSaudeFinanceira();
   updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7));
 }
@@ -4097,7 +4146,7 @@ function deleteFixa(idx) {
   renderFixas();
   updateResumoCards();
   updateCharts();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
   updateSaudeFinanceira();
 }
 function renderFixas() {
@@ -4700,26 +4749,21 @@ function renderInvestimentosValues() {
     xpIds.forEach(id  => { const e=document.getElementById(id); if(e) e.style.width='0%'; });
     xpPIds.forEach(id => { const e=document.getElementById(id); if(e) e.textContent='0%'; });
   }
-  // Caixa Italia — render dynamic accounts
+  // Caixa Italia — show DRE cascade total only (no per-account rows)
   const eurContas = getContasArr().filter(c=>c.moeda==='eur');
   const caixaWrap = document.getElementById('inv-caixa-rows');
-  if (caixaWrap && eurContas.length) {
-    const baseSumEUR = eurContas.reduce((s,c)=>s+(c.saldo||0),0);
-    caixaWrap.innerHTML = eurContas.map((c,i) => {
-      const sc = c.saldo||0; // show base saldo (reference date)
-      const pct = baseSumEUR > 0 ? Math.round(sc/baseSumEUR*100) : 0;
-      const refLabel = c.dataRef ? ` <span style="font-size:9px;color:#aaa;">(em ${c.dataRef.slice(0,7)})</span>` : '';
-      return `<div class="port-row">
-        <div class="port-dot" style="background:${c.cor||'#888'};"></div>
-        <div class="port-name">${c.nome}${refLabel}</div>
-        <div class="port-bar-wrap"><div class="port-bar" style="width:${pct}%;background:${c.cor||'#888'};"></div></div>
-        <div class="port-pct">${pct}%</div>
-        <div class="port-val text-eur">${fE(sc)}</div>
-        <div class="port-rent" style="color:#aaa;">0,0%</div>
-      </div>`;
-    }).join('');
-  } else if (caixaWrap) {
-    caixaWrap.innerHTML = '<div style="padding:8px;font-size:12px;color:#aaa;">Adicione contas em EUR na aba Resumo.</div>';
+  if (caixaWrap) {
+    const dreInvEUR = computeDRECascade('eur');
+    const curMoInv = new Date().getMonth();
+    const caixaIniMes = dreInvEUR.saldoIni[curMoInv];
+    const mesNome = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][curMoInv];
+    const fmtEst = v => v < 0 ? `- € ${Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : `€ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+    caixaWrap.innerHTML = `<div class="port-row" style="padding:10px 0;">
+      <div class="port-dot" style="background:var(--eur-c);"></div>
+      <div class="port-name" style="font-size:13px;color:#ccc;">Saldo inicial ${mesNome}/${new Date().getFullYear()}</div>
+      <div style="flex:1;"></div>
+      <div class="port-val text-eur" style="${caixaIniMes<0?'color:#ff6b6b !important;':''}">${fmtEst(caixaIniMes)}</div>
+    </div>`;
   }
   // Mútuo: check sc_fixas first, then sc_financiamentos
   const fixasAll = DB.get('sc_fixas',[]);
@@ -5157,6 +5201,46 @@ function updateSaudeFinanceira() {
 }
 
 // ============================================================
+// ALERTAS CASHFLOW — próximos vencimentos de despesas fixas
+// ============================================================
+function renderCfAlerts() {
+  const wrap = document.getElementById('cf-alertas-wrap');
+  if (!wrap) return;
+  const fixas = DB.get('sc_fixas', []).filter(f => f.moeda === 'eur');
+  if (!fixas.length) {
+    wrap.innerHTML = '<div class="alert-card info"><div class="alert-icon">📅</div><div class="alert-body"><div class="alert-title">Próximos vencimentos</div><div class="alert-text">Cadastre suas despesas fixas para ver alertas automáticos.</div></div></div>';
+    return;
+  }
+  const today = new Date().getDate();
+  const curMoIdx = new Date().getMonth();
+  const dreA = computeDRECascade('eur');
+  const caixaAtual = dreA.saldoIni[curMoIdx];
+  const normYM2 = d => { if(!d) return ''; if(d.includes('/')) { const p=d.split('/'); return p.length===3?p[2]+'-'+p[1].padStart(2,'0'):''; } return d.slice(0,7); };
+  const cmpYM2 = (a,b) => { const [ay,am]=a.split('-').map(Number); const [by,bm]=b.split('-').map(Number); return ay!==by?ay-by:am-bm; };
+  const curYM = new Date().toISOString().slice(0,7);
+  const upcoming = [];
+  fixas.forEach(f => {
+    if (!f.dia) return;
+    const startOk = !f.dataInicio || cmpYM2(normYM2(f.dataInicio), curYM) <= 0;
+    const endOk   = !f.dataFim   || cmpYM2(normYM2(f.dataFim),   curYM) >= 0;
+    if (!startOk || !endOk) return;
+    const diasRestantes = f.dia - today;
+    if (diasRestantes >= 0) { // upcoming this month
+      const quando = diasRestantes === 0 ? 'hoje' : diasRestantes === 1 ? 'amanhã' : `em ${diasRestantes} dias (dia ${f.dia})`;
+      const cobreSaldo = caixaAtual >= f.valor;
+      upcoming.push({ type: cobreSaldo?'warn':'danger', icon: cobreSaldo?'⚠️':'🔴',
+        title: `${f.nome} — vence ${quando}`,
+        text: `€ ${f.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})} · Saldo início do mês: ${caixaAtual>=0?'€ ':'- € '}${Math.abs(caixaAtual).toLocaleString('pt-BR',{minimumFractionDigits:2})}` });
+    }
+  });
+  if (!upcoming.length) {
+    wrap.innerHTML = '<div class="alert-card success"><div class="alert-icon">✅</div><div class="alert-body"><div class="alert-title">Sem vencimentos este mês</div><div class="alert-text">Nenhuma despesa fixa com vencimento ainda este mês.</div></div></div>';
+    return;
+  }
+  wrap.innerHTML = upcoming.map(a => `<div class="alert-card ${a.type}"><div class="alert-icon">${a.icon}</div><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-text">${a.text}</div></div></div>`).join('');
+}
+
+// ============================================================
 // ALERTAS — inteligentes baseados em dados reais
 // ============================================================
 function renderAlerts() {
@@ -5270,7 +5354,7 @@ function forceRefresh() {
   renderEntrList(); renderEntrTable(); renderMetas(); renderHistorico();
   renderFixas(); renderContasSaldos(); renderInvestimentosValues();
   updateDashCards(); updateEntrCards(); updateResumoCards();
-  updateCharts(); renderAlerts(); updateSaudeFinanceira(); renderFinanciamentos(); refreshSimuladorOptions(); renderEstratInsights(); updateEvolChart();
+  updateCharts(); renderAlerts(); renderCfAlerts(); updateSaudeFinanceira(); renderFinanciamentos(); refreshSimuladorOptions(); renderEstratInsights(); updateEvolChart();
   const curMes = document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7);
   updateDailyAnalysis(curMes);
 }
@@ -5647,7 +5731,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const _curMes = new Date().toISOString().slice(0,7);
   updateDailyAnalysis(_curMes);
   updateCharts();
-  renderAlerts();
+  renderAlerts(); renderCfAlerts();
   updateSaudeFinanceira();
   // init relatórios default dates
   const today = new Date().toISOString().split('T')[0];
