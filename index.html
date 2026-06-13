@@ -1532,6 +1532,21 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
     </div>
   </div>
 
+  <div class="section-title">Análise de saldo diário
+    <select class="finput" style="width:auto;font-size:11px;padding:4px 8px;" id="estrat-month-sel" onchange="updateDailyAnalysis(this.value)">
+      <option value="2026-06">Jun/2026</option>
+      <option value="2026-05">Mai/2026</option>
+      <option value="2026-07">Jul/2026</option>
+      <option value="2026-08">Ago/2026</option>
+      <option value="2026-09">Set/2026</option>
+      <option value="2026-10">Out/2026</option>
+      <option value="2026-11">Nov/2026</option>
+      <option value="2026-12">Dez/2026</option>
+      <option value="2026-04">Abr/2026</option>
+    </select>
+  </div>
+  <div id="daily-analysis-wrap"></div>
+
   <div class="section-title">Anotações do casal
     <button class="btn-secondary" onclick="toggleForm('cf-comment-form')">+ Adicionar</button>
   </div>
@@ -1810,56 +1825,6 @@ body { display: flex; flex-direction: column; max-width: 680px; margin: 0 auto; 
       </div>
     </div>
   </div>
-
-  <div class="section-title">Análise de saldo diário
-    <select class="finput" style="width:auto;font-size:11px;padding:4px 8px;" id="estrat-month-sel" onchange="updateDailyAnalysis(this.value)">
-      <option value="2026-06">Jun/2026</option>
-      <option value="2026-05">Mai/2026</option>
-      <option value="2026-07">Jul/2026</option>
-      <option value="2026-08">Ago/2026</option>
-      <option value="2026-09">Set/2026</option>
-      <option value="2026-10">Out/2026</option>
-      <option value="2026-11">Nov/2026</option>
-      <option value="2026-12">Dez/2026</option>
-      <option value="2026-04">Abr/2026</option>
-    </select>
-  </div>
-  <div id="daily-analysis-wrap">
-  <div class="card-white mb12" style="padding:12px;">
-    <div class="flex-between mb8">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:var(--warn);"></div>
-        <span class="fs12 fw7">Atenção — saldo apertado entre dias 01–05</span>
-      </div>
-      <span class="fs10" style="color:#aaa;">Saldo inicial: € 3.444</span>
-    </div>
-    <div class="daily-row crit">
-      <div class="daily-date">01/Jun</div>
-      <div class="daily-desc">Mútuo MPS (- € 713) + Aporte XP (- R$ 1.500) · saldo cai para € 2.731</div>
-      <div class="daily-amt">€ 2.731</div>
-    </div>
-    <div class="daily-row warn">
-      <div class="daily-date">05/Jun</div>
-      <div class="daily-desc">Fatura Unicredit Buddy (- € 570) · saldo mínimo previsto</div>
-      <div class="daily-amt">€ 2.161</div>
-    </div>
-    <div class="daily-row ok">
-      <div class="daily-date">15/Jun</div>
-      <div class="daily-desc">Salário Camila (+ € 1.200) · Prestito (- € 240) · saldo recupera</div>
-      <div class="daily-amt">€ 3.121</div>
-    </div>
-    <div class="daily-row ok">
-      <div class="daily-date">31/Mai</div>
-      <div class="daily-desc">Salário Ayrton (+ € 2.857) · fecha o mês positivo</div>
-      <div class="daily-amt">€ 3.863</div>
-    </div>
-    <div class="sim-result" style="margin-top:10px;">
-      <div class="sr-item"><div class="sr-label">Saldo mínimo</div><div class="sr-val text-warn">€ 2.161</div></div>
-      <div class="sr-item"><div class="sr-label">Dia crítico</div><div class="sr-val text-danger">05/Jun</div></div>
-      <div class="sr-item"><div class="sr-label">Risco negativo</div><div class="sr-val text-eur">Não</div></div>
-    </div>
-  </div>
-  </div><!-- end daily-analysis-wrap -->
 
   <div class="section-title">Conversão de moedas — análise</div>
   <div class="card-white mb12" style="padding:14px;" id="conv-moedas-wrap">
@@ -2701,8 +2666,8 @@ function showTab(tabId, navEl, bnEl) {
   const inits = {
     dashboard: initDashCharts,
     resumo: initResumoCharts,
-    cashflow: initCfCharts,
-    investimentos: () => { initInvestCharts(); renderInvLivre(); },
+    cashflow: () => { initCfCharts(); updateDailyAnalysis(document.getElementById('estrat-month-sel')?.value || new Date().toISOString().slice(0,7)); },
+    investimentos: () => { initInvestCharts(); renderInvLivre(); renderInvestimentosValues(); },
     estrategia: initEstratCharts,
     despesas: () => { renderDespTable(); renderCatSummary(); },
     historico: renderHistorico,
@@ -4167,15 +4132,59 @@ function renderFixas() {
 }
 
 // ============================================================
+// DRE CASCADE — shared helper (used by Dashboard, Análise, Investimentos)
+// Returns {saldoIni:[12], caixaFinal:[12]} for the given moeda and current year
+// ============================================================
+function computeDRECascade(cfMoeda) {
+  const yr = new Date().getFullYear();
+  const mKeys = Array.from({length:12}, (_,i) => `${yr}-${String(i+1).padStart(2,'0')}`);
+  const normYM = d => { if(!d) return ''; if(d.includes('/')) { const p=d.split('/'); return p.length===3?p[2]+'-'+p[1].padStart(2,'0'):''; } return d.slice(0,7); };
+  const cmpYM = (a,b) => { const na=normYM(a),nb=normYM(b); const [ay,am]=na.split('-').map(Number); const [by,bm]=nb.split('-').map(Number); return ay!==by?ay-by:am-bm; };
+  const allEntr = typeof entradas!=='undefined'?entradas:[];
+  const allDesp = typeof despesas!=='undefined'?despesas:[];
+  const fixas = DB.get('sc_fixas',[]).filter(f=>f.moeda===cfMoeda);
+  // entradas per month
+  const entrByMo = mKeys.map(m=>allEntr.filter(e=>e.data&&e.data.startsWith(m)&&e.moeda===cfMoeda).reduce((s,e)=>s+e.valor,0));
+  // sc_fixas projection per month
+  const fixasByMo = mKeys.map(moMes=>{
+    const m7=moMes.slice(0,7);
+    return fixas.filter(f=>{ const s=normYM(f.dataInicio),e=normYM(f.dataFim); return (!s||cmpYM(s,m7)<=0)&&(!e||cmpYM(e,m7)>=0); }).reduce((s,f)=>s+f.valor,0);
+  });
+  // tipo='fix' despesas per month
+  const fixDespByMo = mKeys.map(m=>allDesp.filter(d=>d.data&&d.data.startsWith(m)&&d.moeda===cfMoeda&&d.tipo==='fix').reduce((s,d)=>s+d.valor,0));
+  // variáveis per month
+  const varByMo = mKeys.map(m=>allDesp.filter(d=>d.data&&d.data.startsWith(m)&&d.moeda===cfMoeda&&d.tipo!=='fix').reduce((s,d)=>s+d.valor,0));
+  // total saída per month
+  const saidaByMo = mKeys.map((_,i)=>fixasByMo[i]+fixDespByMo[i]+varByMo[i]);
+  // cascade from account reference
+  const contasMoeda = typeof getContasArr==='function'?getContasArr().filter(c=>c.moeda===cfMoeda):[];
+  const saldoIniByMo = Array(12).fill(0);
+  const caixaFinalByMo = Array(12).fill(0);
+  let saldoRefIdx=0, saldoRefVal=0;
+  if(contasMoeda.length>0){
+    const refDates=contasMoeda.map(c=>c.dataRef).filter(d=>d&&d.length===10);
+    if(refDates.length>0){ const earliest=refDates.sort()[0]; const ry=parseInt(earliest.slice(0,4)),rm=parseInt(earliest.slice(5,7))-1; saldoRefIdx=(ry===yr)?Math.max(0,rm):0; }
+    saldoRefVal=contasMoeda.reduce((s,c)=>s+(c.saldo||0),0);
+  }
+  saldoIniByMo[saldoRefIdx]=saldoRefVal;
+  for(let i=saldoRefIdx;i<12;i++){ caixaFinalByMo[i]=saldoIniByMo[i]+entrByMo[i]-saidaByMo[i]; if(i<11) saldoIniByMo[i+1]=caixaFinalByMo[i]; }
+  for(let i=0;i<saldoRefIdx;i++){ caixaFinalByMo[i]=saldoIniByMo[i]+entrByMo[i]-saidaByMo[i]; if(i+1<saldoRefIdx) saldoIniByMo[i+1]=caixaFinalByMo[i]; }
+  return { saldoIni:saldoIniByMo, caixaFinal:caixaFinalByMo, entr:entrByMo, saida:saidaByMo };
+}
+
+// ============================================================
 // DASHBOARD + RESUMO — dynamic summary cards
 // ============================================================
 function updateDashCards() {
   const mes = new Date().toISOString().slice(0,7);
+  const curMo = new Date().getMonth();
   const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
-  const _contas = typeof getContasArr === 'function' ? getContasArr() : [];
-  const caixaIT = _contas.filter(c=>c.moeda==='eur').reduce((s,c)=>s+(c.saldo||0),0);
-  const caixaBR = _contas.filter(c=>c.moeda==='brl').reduce((s,c)=>s+(c.saldo||0),0);
+  // Use DRE cascade: saldo inicial do mês = caixa acumulado considerando fixas projetadas
+  const dreEUR = computeDRECascade('eur');
+  const dreBRL = computeDRECascade('brl');
+  const caixaIT = dreEUR.saldoIni[curMo]; // saldo no início do mês atual
+  const caixaBR = dreBRL.saldoIni[curMo];
   const inv = DB.get('sc_investimentos',{});
   const xp = inv.xp||0, imovelBR=inv.imovelBr||0, imovelIT=inv.imovelIt||0;
   const fx = fxRates.EURBRL||6.0;
@@ -4186,7 +4195,7 @@ function updateDashCards() {
   const invLivreUsd = invLivre.filter(i=>i.moeda==='usd').reduce((s,i)=>s+i.valor,0);
   const patrimBRL = imovelBR + xp + invLivreBrl + (invLivreUsd*5.1) + (imovelIT*fx) + (caixaIT*fx) + (invLivreEur*fx);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  const fe=(v)=>v>0?'€ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —';
+  const fe=(v)=>v===0?'€ —':v>0?'€ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'- € '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
   const fb=(v)=>v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):'R$ —';
   set('d-caixa-eur', fe(caixaIT));
   set('d-caixa-brl', caixaBR>0?'R$ '+Math.round(caixaBR).toLocaleString('pt-BR'):'—');
@@ -4199,13 +4208,12 @@ function updateDashCards() {
     sobraEl.className = 'card-value '+(sobra>200?'text-eur':sobra>=0?'text-gold':'text-danger');
   }
   const caixaEl = document.getElementById('d-caixa-eur');
-  if (caixaEl && caixaIT>0) caixaEl.className = 'card-value '+(caixaIT>2000?'text-eur':caixaIT>500?'text-gold':'text-danger');
+  if (caixaEl) caixaEl.className = 'card-value '+(caixaIT>2000?'text-eur':caixaIT>0?'text-gold':'text-danger');
   set('d-patrim-brl', patrimBRL>0?'R$ '+Math.round(patrimBRL).toLocaleString('pt-BR'):'R$ —');
   set('d-patrim-eur', patrimBRL>0?'≈ € '+Math.round(patrimBRL/fx).toLocaleString('pt-BR'):'≈ € —');
   // Acumulado 2026
   const yr2 = new Date().getFullYear();
   const mKeys2 = Array.from({length:12}, (_,i) => `${yr2}-${String(i+1).padStart(2,'0')}`);
-  const curMo = new Date().getMonth();
   let acumEntr = 0, acumDesp = 0;
   mKeys2.slice(0, curMo+1).forEach(m => {
     acumEntr += entradas.filter(e=>e.data.startsWith(m)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
@@ -4220,23 +4228,16 @@ function updateDashCards() {
   const totFixasBrl = fixas2.filter(f=>f.moeda==='brl').reduce((s,f)=>s+f.valor,0);
   set('d-fixas-mes', totFixasEur>0?'€ '+totFixasEur.toLocaleString('pt-BR',{minimumFractionDigits:2}):'€ —');
   set('d-fixas-sub', totFixasBrl>0?fixas2.filter(f=>f.moeda==='eur').length+' EUR · '+fixas2.filter(f=>f.moeda==='brl').length+' BRL':fixas2.length+' despesa(s) recorrente(s)');
-  // Saldo previsto = caixa final DRE do mês atual
-  const _curMoIdx = new Date().getMonth();
-  const saldoPrev = (DRE_ROWS && DRE_ROWS[12] && DRE_ROWS[12].vals[_curMoIdx] != null)
-    ? DRE_ROWS[12].vals[_curMoIdx] : null;
+  // Saldo previsto = caixa final do mês atual (DRE cascade)
+  const saldoPrev = dreEUR.caixaFinal[curMo];
   const prevEl2 = document.getElementById('d-saldo-prev');
   if (prevEl2) {
-    if (saldoPrev === null) {
-      prevEl2.textContent = '€ —';
-      prevEl2.className = 'card-value';
-    } else {
-      prevEl2.textContent = saldoPrev >= 0
-        ? '€ '+saldoPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})
-        : '- € '+Math.abs(saldoPrev).toLocaleString('pt-BR',{minimumFractionDigits:2});
-      prevEl2.className = 'card-value '+(saldoPrev>=1500?'text-eur':saldoPrev>=0?'text-gold':'text-danger');
-    }
+    prevEl2.textContent = saldoPrev >= 0
+      ? '€ '+saldoPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})
+      : '- € '+Math.abs(saldoPrev).toLocaleString('pt-BR',{minimumFractionDigits:2});
+    prevEl2.className = 'card-value '+(saldoPrev>=1500?'text-eur':saldoPrev>=0?'text-gold':'text-danger');
   }
-  set('d-saldo-prev-sub', 'Caixa final do mês (DRE)');
+  set('d-saldo-prev-sub', 'Caixa final previsto (DRE)');
 }
 
 function updateEntrCards() {
@@ -4268,10 +4269,12 @@ function updateEntrCards() {
 
 function updateResumoCards() {
   const mes = new Date().toISOString().slice(0,7);
+  const curMo = new Date().getMonth();
   const fixas = DB.get('sc_fixas',[]);
-  const _contasR = typeof getContasArr === 'function' ? getContasArr() : [];
-  const caixaIT = _contasR.filter(c=>c.moeda==='eur').reduce((s,c)=>s+(c.saldo||0),0);
-  const caixaBR = _contasR.filter(c=>c.moeda==='brl').reduce((s,c)=>s+(c.saldo||0),0);
+  const dreEUR2 = computeDRECascade('eur');
+  const dreBRL2 = computeDRECascade('brl');
+  const caixaIT = dreEUR2.saldoIni[curMo];
+  const caixaBR = dreBRL2.saldoIni[curMo];
   const totFixasEur = fixas.filter(f=>f.moeda==='eur').reduce((s,f)=>s+f.valor,0);
   const entrMes = entradas.filter(e=>e.data.startsWith(mes)&&e.moeda==='eur').reduce((s,e)=>s+e.valor,0);
   const despMes = despesas.filter(d=>d.data.startsWith(mes)&&d.moeda==='eur').reduce((s,d)=>s+d.valor,0);
@@ -4638,7 +4641,8 @@ function renderInvestimentosValues() {
   const imovelBR  = inv.imovelBr?? 0;
   const imovelIT  = inv.imovelIt?? 0;
   const rendaBr   = inv.rendaBr ?? 0;
-  const caixaIT   = getContasSaldoCalc('eur');
+  const dreInv = computeDRECascade('eur');
+  const caixaIT = dreInv.saldoIni[new Date().getMonth()];
   const xpTotal   = xpRf + xpFundo + xpAcoes + xpCripto || xp;
   const total = imovelBR + xpTotal + (imovelIT * fx) + (caixaIT * fx);
 
@@ -4700,17 +4704,14 @@ function renderInvestimentosValues() {
   const eurContas = getContasArr().filter(c=>c.moeda==='eur');
   const caixaWrap = document.getElementById('inv-caixa-rows');
   if (caixaWrap && eurContas.length) {
+    const baseSumEUR = eurContas.reduce((s,c)=>s+(c.saldo||0),0);
     caixaWrap.innerHTML = eurContas.map((c,i) => {
-      const sc = (() => {
-        if (!c.dataRef) return c.saldo||0;
-        const te=(typeof entradas!=='undefined'?entradas:[]).filter(e=>e.moeda==='eur'&&e.data>=c.dataRef).reduce((s,e)=>s+e.valor,0);
-        const td=(typeof despesas!=='undefined'?despesas:[]).filter(d=>d.moeda==='eur'&&d.data>=c.dataRef).reduce((s,d)=>s+d.valor,0);
-        return (c.saldo||0)+te-td;
-      })();
-      const pct = caixaIT > 0 ? Math.round(sc/caixaIT*100) : 0;
+      const sc = c.saldo||0; // show base saldo (reference date)
+      const pct = baseSumEUR > 0 ? Math.round(sc/baseSumEUR*100) : 0;
+      const refLabel = c.dataRef ? ` <span style="font-size:9px;color:#aaa;">(em ${c.dataRef.slice(0,7)})</span>` : '';
       return `<div class="port-row">
         <div class="port-dot" style="background:${c.cor||'#888'};"></div>
-        <div class="port-name">${c.nome}</div>
+        <div class="port-name">${c.nome}${refLabel}</div>
         <div class="port-bar-wrap"><div class="port-bar" style="width:${pct}%;background:${c.cor||'#888'};"></div></div>
         <div class="port-pct">${pct}%</div>
         <div class="port-val text-eur">${fE(sc)}</div>
@@ -4720,11 +4721,17 @@ function renderInvestimentosValues() {
   } else if (caixaWrap) {
     caixaWrap.innerHTML = '<div style="padding:8px;font-size:12px;color:#aaa;">Adicione contas em EUR na aba Resumo.</div>';
   }
-  // Mútuo from sc_financiamentos
+  // Mútuo: check sc_fixas first, then sc_financiamentos
+  const fixasAll = DB.get('sc_fixas',[]);
+  const mutuoFixa = fixasAll.find(f => /mutuo|mútuo|hipoteca/i.test(f.nome) && f.moeda==='eur');
   const financ = DB.get('sc_financiamentos',[]);
-  const mutuo = financ.find(f => /mutuo|mútuo|hipoteca/i.test(f.nome));
+  const mutuoFinanc = financ.find(f => /mutuo|mútuo|hipoteca/i.test(f.nome));
   const mutuoEl = document.getElementById('inv-mutuo-mes');
-  if (mutuoEl) mutuoEl.textContent = mutuo ? `Mútuo: - € ${parseFloat(mutuo.parcela).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês` : '';
+  if (mutuoEl) {
+    if (mutuoFixa) mutuoEl.textContent = `Mútuo: - € ${mutuoFixa.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês`;
+    else if (mutuoFinanc) mutuoEl.textContent = `Mútuo: - € ${parseFloat(mutuoFinanc.parcela).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês`;
+    else mutuoEl.textContent = '';
+  }
   if (typeof updateEvolChart === 'function') updateEvolChart();
   if (typeof renderEstratInsights === 'function') renderEstratInsights();
 }
@@ -4811,7 +4818,12 @@ function updateDailyAnalysis(mes) {
   const wrap = document.getElementById('daily-analysis-wrap');
   if (!wrap) return;
   const fixas = DB.get('sc_fixas', []);
-  const saldoInicial = getContasSaldoCalc('eur');
+  // Use DRE cascade saldo inicial for the selected month
+  const [mesYr, mesMo] = mes.split('-').map(Number);
+  const curYr = new Date().getFullYear();
+  const dreDA = computeDRECascade('eur');
+  const moIdx = (mesYr === curYr) ? (mesMo - 1) : (mesMo - 1);
+  const saldoInicial = (mesYr === curYr && moIdx >= 0 && moIdx < 12) ? dreDA.saldoIni[moIdx] : getContasSaldoCalc('eur');
   const MESES_PT = {
     '01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
     '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'
@@ -5579,16 +5591,21 @@ function renderEstratInsights() {
 function updateEvolChart() {
   const inv = DB.get('sc_investimentos', {});
   const fx  = fxRates.EURBRL || 6.0;
-  const total = (inv.imovelBr||0) + (inv.xpRf||0) + (inv.xpFundo||0) + (inv.xpAcoes||0) + (inv.xpCripto||0)
-              + ((inv.imovelIt||0) * fx) + (getContasSaldoCalc('eur') * fx);
-  const yr = new Date().getFullYear().toString();
+  const dreEvolv = computeDRECascade('eur');
+  const curMo = new Date().getMonth();
+  const caixaEUR = dreEvolv.caixaFinal[curMo];
+  const xpTotal = (inv.xpRf||0) + (inv.xpFundo||0) + (inv.xpAcoes||0) + (inv.xpCripto||0) || (inv.xp||0);
+  const total = (inv.imovelBr||0) + xpTotal + ((inv.imovelIt||0)*fx) + (caixaEUR*fx);
+  const yr = new Date().getFullYear();
+  const labels = ['2020','2021','2022','2023','2024','2025',yr+'p'];
+  const patrimData = [0,0,0,0,0,0, Math.round(total)];
+  const saldoData  = [0,0,0,0,0,0, Math.round(caixaEUR*fx)];
   for (const id of ['evolChart', 'resumoEvolChart']) {
     if (!charts[id]) continue;
-    const hasVal = total > 0;
-    charts[id].data.labels = hasVal ? [yr] : [];
-    charts[id].data.datasets[0].data = hasVal ? [Math.round(total)] : [];
-    charts[id].data.datasets[1].data = [];
-    charts[id].update('none');
+    charts[id].data.labels = labels;
+    charts[id].data.datasets[0].data = patrimData;
+    charts[id].data.datasets[1].data = saldoData;
+    charts[id].update();
   }
 }
 
